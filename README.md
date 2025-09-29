@@ -1,114 +1,96 @@
-
 ````markdown
-# SecDev Course Template
-
+SecDev Course Template
 Стартовый шаблон для студенческого репозитория (HSE SecDev 2025).
 
----
-
-## Быстрый старт (Windows PowerShell)
-
-1. Создаём виртуальное окружение:
-```powershell
+Быстрый старт
 python -m venv .venv
-````
-
-2. Разрешаем выполнение скриптов (если потребуется):
-
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process
-```
-
-3. Активируем виртуальное окружение:
-
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-4. Устанавливаем зависимости:
-
-```powershell
+source .venv/bin/activate  # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt -r requirements-dev.txt
-```
-
-5. Устанавливаем pre-commit hooks:
-
-```powershell
 pre-commit install
-```
-
-6. Запускаем сервер:
-
-```powershell
 uvicorn app.main:app --reload
-```
 
-7. Проверяем эндпойнт:
-
-```
-http://127.0.0.1:8000/health
-```
-
----
-
-## Ритуал перед PR
-
-Перед Pull Request проверяем код и форматирование:
-
-```powershell
+Ритуал перед PR
 ruff check --fix .
 black .
 isort .
 pytest -q
 pre-commit run --all-files
-```
 
----
-
-## Тесты
-
-```powershell
+Тесты
 pytest -q
-```
 
----
+CI
+В репозитории настроен workflow CI (GitHub Actions) — required check для main. Badge добавится автоматически после загрузки шаблона в GitHub.
 
-## CI
-
-В репозитории настроен workflow CI (GitHub Actions) — required check для main.
-Badge добавится автоматически после загрузки шаблона в GitHub.
-
----
-
-## Контейнеры
-
-```powershell
+Контейнеры
 docker build -t secdev-app .
 docker run --rm -p 8000:8000 secdev-app
 # или
 docker compose up --build
-```
 
----
+Эндпойнты
+GET /health → {"status": "ok"}
+POST /items?name=... — демо-сущность
+GET /items/{id}
 
-## Эндпойнты
-
-* `GET /health` → `{"status": "ok"}`
-* `POST /items?name=...` — демо-сущность
-* `GET /items/{id}`
-
----
-
-## Формат ошибок
-
+Формат ошибок
 Все ошибки — JSON-обёртка:
 
-```json
 {
   "error": {"code": "not_found", "message": "item not found"}
 }
+
+P02 — Git-процессы и рецензирование
+Цель: отработать рабочую модель ветвления, оформление PR по шаблону, содержательное ревью и правила защиты main с обязательными статусами.
+
+### Как работать
+1. Создаём ветку от `main`:
+```bash
+git checkout main
+git pull
+git checkout -b p02-<short-topic>
+````
+
+Пример: `p02-update-readme`
+
+2. Вносим изменения в ветке `p02-*`.
+
+3. Проверяем локально всё зелёное:
+
+```bash
+pre-commit run --all-files
+ruff check --fix .
+black .
+isort .
+pytest -q
 ```
 
----
+4. Открываем PR `p02-* → main`:
 
-См. также: `SECURITY.md`, `.pre-commit-config.yaml`, `.github/workflows/ci.yml`.
+* Заполняем шаблон PR (что сделано / как проверял / чек-лист)
+* Добавляем ревьюеров
+* Ссылка на Issue/задачу (если есть)
+
+5. Исправляем замечания по ревью и ждём зелёного CI.
+
+6. После зелёного CI и аппрувов делаем merge pull request и, при необходимости, ставим тег:
+
+```bash
+git checkout main
+git pull
+git tag P02
+git push --tags
+```
+
+### Проверка и требования
+
+* Локально все проверки pre-commit должны проходить
+* Тесты pytest должны быть зелёными
+* Прямые пуши в `main` запрещены
+* CI должен быть зелёным перед merge
+
+См. также: SECURITY.md, .pre-commit-config.yaml, .github/workflows/ci.yml.
+
+```
+```
+****
