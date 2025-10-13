@@ -8,7 +8,8 @@ client = TestClient(app)
 def test_register_login_create_media():
     # Регистрация
     r = client.post(
-        "/auth/register", json={"username": "test1", "password": "123", "email": "test1@example.com"}
+        "/auth/register",
+        json={"username": "test1", "password": "123", "email": "test1@example.com"},
     )
     assert r.status_code == 201
 
