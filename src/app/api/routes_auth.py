@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+import bcrypt
 from sqlalchemy.orm import Session
 
 from src.database import get_db
@@ -17,13 +17,15 @@ SECRET_KEY = "supersecretkey"  # потом вынести в .env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Используем bcrypt напрямую
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 # ===== Утилиты =====
 def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
+    # Ограничиваем длину пароля для bcrypt (максимум 72 байта)
+    password_to_verify = plain_password[:72].encode('utf-8')
+    return bcrypt.checkpw(password_to_verify, hashed_password.encode('utf-8'))
 
 
 def authenticate_user(db: Session, username: str, password: str):
@@ -31,9 +33,7 @@ def authenticate_user(db: Session, username: str, password: str):
     if not user:
         return None
 
-    # Ограничиваем длину пароля для bcrypt (максимум 72 байта)
-    password_to_verify = password[:72]
-    if not verify_password(password_to_verify, user.password):
+    if not verify_password(password, user.password):
         return None
     return user
 
@@ -76,11 +76,12 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username already exists")
 
     # Ограничиваем длину пароля для bcrypt (максимум 72 байта)
-    password_to_hash = user.password[:72]
+    password_to_hash = user.password[:72].encode('utf-8')
+    hashed_password = bcrypt.hashpw(password_to_hash, bcrypt.gensalt())
     db_user = User(
         username=user.username,
         email=user.email,
-        password=pwd_context.hash(password_to_hash),
+        password=hashed_password.decode('utf-8'),
     )
     db.add(db_user)
     db.commit()
