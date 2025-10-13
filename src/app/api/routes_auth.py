@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -32,7 +32,6 @@ def authenticate_user(db: Session, username: str, password: str):
     user = db.query(User).filter(User.username == username).first()
     if not user:
         return None
-
     if not verify_password(password, user.password):
         return None
     return user
@@ -99,3 +98,13 @@ def login(
 
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(response: Response, current_user=Depends(get_current_user)):
+    """
+    Logout пользователя. В текущей реализации просто удаляет JWT на клиенте.
+    Если токен хранится в cookie — удаляет cookie.
+    """
+    response.delete_cookie(key="access_token")
+    return
