@@ -24,8 +24,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 # ===== Утилиты =====
 def verify_password(plain_password, hashed_password):
     # Ограничиваем длину пароля для bcrypt (максимум 72 байта)
-    password_to_verify = plain_password[:72].encode('utf-8')
-    return bcrypt.checkpw(password_to_verify, hashed_password.encode('utf-8'))
+    password_to_verify = plain_password[:72].encode("utf-8")
+    return bcrypt.checkpw(password_to_verify, hashed_password.encode("utf-8"))
 
 
 def authenticate_user(db: Session, username: str, password: str):
@@ -40,16 +40,12 @@ def authenticate_user(db: Session, username: str, password: str):
 
 def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + (
-        expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    )
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-async def get_current_user(
-    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
-):
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -76,12 +72,12 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="Username already exists")
 
     # Ограничиваем длину пароля для bcrypt (максимум 72 байта)
-    password_to_hash = user.password[:72].encode('utf-8')
+    password_to_hash = user.password[:72].encode("utf-8")
     hashed_password = bcrypt.hashpw(password_to_hash, bcrypt.gensalt())
     db_user = User(
         username=user.username,
         email=user.email,
-        password=hashed_password.decode('utf-8'),
+        password=hashed_password.decode("utf-8"),
     )
     db.add(db_user)
     db.commit()
@@ -90,9 +86,7 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login")
-def login(
-    form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)
-):
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(status_code=401, detail="Incorrect username or password")
