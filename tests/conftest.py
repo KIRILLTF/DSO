@@ -1,14 +1,13 @@
-# tests/conftest.py
 import sys
 from pathlib import Path
 
 import pytest
 
-from src.database import Base, engine
-
 ROOT = Path(__file__).resolve().parents[1]  # корень репозитория
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from src.database import Base, engine  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
