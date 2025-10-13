@@ -14,8 +14,8 @@ app = FastAPI(title="My Project")
 init_db()
 
 # Подключаем маршруты
-app.include_router(auth_router, prefix="/auth", tags=["auth"])
-app.include_router(media_router, prefix="/media", tags=["media"])
+app.include_router(auth_router, tags=["auth"])
+app.include_router(media_router, tags=["media"])
 
 
 # Пример middleware (можно оставлять для request logging, request_id и т.п.)

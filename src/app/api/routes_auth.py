@@ -28,7 +28,12 @@ def verify_password(plain_password, hashed_password):
 
 def authenticate_user(db: Session, username: str, password: str):
     user = db.query(User).filter(User.username == username).first()
-    if not user or not verify_password(password, user.password):
+    if not user:
+        return None
+    
+    # Ограничиваем длину пароля для bcrypt (максимум 72 байта)
+    password_to_verify = password[:72]
+    if not verify_password(password_to_verify, user.password):
         return None
     return user
 
@@ -70,10 +75,13 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already exists")
 
+    # Ограничиваем длину пароля для bcrypt (максимум 72 байта)
+    password_to_hash = user.password[:72]
+    
     db_user = User(
         username=user.username,
         email=user.email,
-        password=pwd_context.hash(user.password),
+        password=pwd_context.hash(password_to_hash),
     )
     db.add(db_user)
     db.commit()

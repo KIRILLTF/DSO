@@ -8,17 +8,17 @@ client = TestClient(app)
 def test_register_login_create_media():
     # Регистрация
     r = client.post(
-        "/api/v1/auth/register", json={"username": "test1", "password": "123"}
+        "/auth/register", json={"username": "test1", "password": "123", "email": "test1@example.com"}
     )
     assert r.status_code == 201
 
     # Логин
-    r = client.post("/api/v1/auth/login", data={"username": "test1", "password": "123"})
+    r = client.post("/auth/login", data={"username": "test1", "password": "123"})
     token = r.json()["access_token"]
 
     # Создание media
     r = client.post(
-        "/api/v1/media/",
+        "/media/",
         json={"title": "Inception", "type": "movie", "year": 2010},
         headers={"Authorization": f"Bearer {token}"},
     )
