@@ -1,3 +1,4 @@
+```mermaid
 flowchart LR
     %% External
     subgraph External["External Entity"]
@@ -43,3 +44,4 @@ flowchart LR
     style MEDIA stroke-dasharray:5 5,stroke:#32CD32
     style DB fill:#F3F3F3,stroke:#666
     style FS fill:#F3F3F3,stroke:#666
+```
