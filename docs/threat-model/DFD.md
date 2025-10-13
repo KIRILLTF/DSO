@@ -1,48 +1,45 @@
-# Data Flow Diagram (DFD) — Media Service
-
-## Main scenario
-
-```mermaid
 flowchart LR
     %% External
-    subgraph External["External App (Client / Browser / Mobile)"]
-        U[User]
+    subgraph External["External Entity"]
+        U[👤 User / Client App]
     end
 
     %% Edge layer
-    subgraph Edge["Trust Boundary: Edge - FastAPI / Uvicorn"]
-        GW[API Gateway / FastAPI Router]
-        AUTH[Auth Service]
-        MEDIA[Media Service]
+    subgraph Edge["Trust Boundary: Edge Layer (FastAPI / Gateway)"]
+        GW[ API Gateway / FastAPI Router]
+        AUTH[ Auth Service]
+        MEDIA[ Media Service]
     end
 
     %% Core layer
-    subgraph Core["Trust Boundary: Core - Storage & DB"]
-        DB[(PostgreSQL media.db)]
-        FS[(Media Files Storage)]
+    subgraph Core["Trust Boundary: Core Layer (Persistent Storage)"]
+        DB[( PostgreSQL - media.db)]
+        FS[( Media Files Storage)]
     end
 
     %% Flows
     U -->|F1: HTTPS POST /auth/register| GW
-    GW -->|F2: forward to Auth Service| AUTH
-    AUTH -->|F3: store user with argon2id hash| DB
+    GW -->|F2: Forward registration| AUTH
+    AUTH -->|F3: Store user (argon2id hash)| DB
 
     U -->|F4: HTTPS POST /auth/login| GW
-    GW -->|F5: verify credentials| AUTH
-    AUTH -->|F6: issue JWT access token| U
+    GW -->|F5: Validate credentials| AUTH
+    AUTH -->|F6: Return JWT access token| U
 
     U -->|F7: HTTPS POST /media/upload (JWT)| GW
-    GW -->|F8: forward request to Media Service| MEDIA
-    MEDIA -->|F9: write metadata| DB
-    MEDIA -->|F10: save file| FS
+    GW -->|F8: Forward upload request| MEDIA
+    MEDIA -->|F9: Write metadata| DB
+    MEDIA -->|F10: Save file| FS
+    MEDIA -->|F11: Return file info| U
 
-    U -->|F11: HTTPS GET /media/list (JWT)| GW
-    GW -->|F12: query Media Service| MEDIA
-    MEDIA -->|F13: select metadata| DB
-    MEDIA -->|F14: return file URLs| U
+    U -->|F12: HTTPS GET /media/list (JWT)| GW
+    GW -->|F13: Forward request| MEDIA
+    MEDIA -->|F14: Read metadata| DB
+    MEDIA -->|F15: Return media list| U
 
     %% Styles
-    style GW stroke-width:2px
-    style AUTH stroke-dasharray: 5 5
-    style MEDIA stroke-dasharray: 5 5
-```
+    style GW stroke-width:2px,stroke:#1E90FF
+    style AUTH stroke-dasharray:5 5,stroke:#FF8C00
+    style MEDIA stroke-dasharray:5 5,stroke:#32CD32
+    style DB fill:#F3F3F3,stroke:#666
+    style FS fill:#F3F3F3,stroke:#666
