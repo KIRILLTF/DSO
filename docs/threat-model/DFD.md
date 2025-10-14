@@ -1,8 +1,19 @@
+# Data Flow Diagram (DFD) — Media Catalog Service
+
+## Overview
+
+Диаграмма отражает потоки данных между пользователем, API Gateway, сервисами аутентификации и управления медиа, а также хранилищем данных и файлов.
+Границы доверия (Trust Boundaries) выделены для Edge и Core уровней системы.
+
+---
+
+## DFD — Main Scenario
+
 ```mermaid
 flowchart LR
     %% External
     subgraph External["External Entity"]
-        U[👤 User / Client App]
+        U[ User / Client App]
     end
 
     %% Edge layer
@@ -21,19 +32,19 @@ flowchart LR
     %% Flows
     U -->|F1: HTTPS POST /auth/register| GW
     GW -->|F2: Forward registration| AUTH
-    AUTH -->|F3: Store user (argon2id hash)| DB
+    AUTH -->|F3: Store user with argon2| DB
 
     U -->|F4: HTTPS POST /auth/login| GW
     GW -->|F5: Validate credentials| AUTH
     AUTH -->|F6: Return JWT access token| U
 
-    U -->|F7: HTTPS POST /media/upload (JWT)| GW
+    U -->|F7: HTTPS POST /media/upload| GW
     GW -->|F8: Forward upload request| MEDIA
     MEDIA -->|F9: Write metadata| DB
     MEDIA -->|F10: Save file| FS
     MEDIA -->|F11: Return file info| U
 
-    U -->|F12: HTTPS GET /media/list (JWT)| GW
+    U -->|F12: HTTPS GET /media/list| GW
     GW -->|F13: Forward request| MEDIA
     MEDIA -->|F14: Read metadata| DB
     MEDIA -->|F15: Return media list| U
