@@ -1,63 +1,46 @@
+# src/services/media_security.py
+
 import os
-import uuid
-from pathlib import Path
-from uuid import uuid4
 
-from starlette.responses import JSONResponse
-
-MAX_BYTES = 5_000_000
-ALLOWED = {"image/png", "image/jpeg"}
-PNG = b"\x89PNG\r\n\x1a\n"
-JPEG_SOI = b"\xff\xd8"
-JPEG_EOI = b"\xff\xd9"
+from fastapi import HTTPException, UploadFile
 
 
-def sniff_image_type(data: bytes) -> str | None:
-    if data.startswith(PNG):
-        return "image/png"
-    if data.startswith(JPEG_SOI) and data.endswith(JPEG_EOI):
-        return "image/jpeg"
-    return None
+class MediaSecurityService:
+    """
+    Сервис для безопасной работы с медиа-файлами:
+    - Проверка размера
+    - Проверка расширения
+    - Ограничение доступа
+    """
 
+    ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+    MAX_FILE_SIZE_MB = 5
 
-def secure_save(base_dir: str, data: bytes) -> tuple[bool, str]:
-    if len(data) > MAX_BYTES:
-        return False, "too_big"
-    mt = sniff_image_type(data)
-    if mt not in ALLOWED:
-        return False, "bad_type"
-    root = Path(base_dir).resolve(strict=True)
-    ext = ".png" if mt == "image/png" else ".jpg"
-    name = f"{uuid.uuid4()}{ext}"
-    path = (root / name).resolve()
-    if not str(path).startswith(str(root)):
-        return False, "path_traversal"
-    if any(p.is_symlink() for p in path.parents):
-        return False, "symlink_parent"
-    with open(path, "wb") as f:
-        f.write(data)
-    return True, str(path)
+    @staticmethod
+    def validate_file(file: UploadFile) -> None:
+        """
+        Проверяет загружаемый файл на размер и тип
+        """
+        extension = file.filename.split(".")[-1].lower()
+        if extension not in MediaSecurityService.ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=400, detail=f"Extension '{extension}' not allowed"
+            )
 
+        # Проверяем размер
+        file.file.seek(0, os.SEEK_END)
+        size_mb = file.file.tell() / (1024 * 1024)
+        file.file.seek(0)
+        if size_mb > MediaSecurityService.MAX_FILE_SIZE_MB:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File size {size_mb:.2f} MB exceeds limit of "
+                f"{MediaSecurityService.MAX_FILE_SIZE_MB} MB",
+            )
 
-def problem(
-    status: int,
-    title: str,
-    detail: str,
-    type_: str = "about:blank",
-    extras: dict | None = None,
-):
-    cid = str(uuid4())
-    payload = {
-        "type": type_,
-        "title": title,
-        "status": status,
-        "detail": detail,
-        "correlation_id": cid,
-    }
-    if extras:
-        payload.update(extras)
-    return JSONResponse(payload, status_code=status)
-
-
-def get_secret(key: str) -> str | None:
-    return os.getenv(key)
+    @staticmethod
+    def sanitize_filename(filename: str) -> str:
+        """
+        Простая очистка имени файла
+        """
+        return os.path.basename(filename)
