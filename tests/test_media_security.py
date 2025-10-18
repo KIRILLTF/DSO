@@ -1,6 +1,7 @@
 from pathlib import Path
 
-from src.services.media_security import get_secret, problem, secure_save, sniff_image_type
+from src.services.media_security import get_secret, secure_save, sniff_image_type
+from src.services.media_security import problem as create_problem  # добавлен алиас
 
 
 def test_sniff_image_type():
@@ -20,7 +21,7 @@ def test_rejects_invalid_type(tmp_path: Path):
 
 
 def test_problem_format():
-    resp = problem(400, "Bad Request", "Invalid input")
+    resp = create_problem(400, "Bad Request", "Invalid input")
     data = resp.body.decode()
     assert "correlation_id" in data
     assert "Invalid input" in data
