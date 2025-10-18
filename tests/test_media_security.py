@@ -1,33 +1,36 @@
-from pathlib import Path
-
-from src.services.media_security import get_secret, problem, secure_save, sniff_image_type
-
-
-def test_sniff_image_type():
-    assert sniff_image_type(b"\x89PNG\r\n\x1a\n") == "image/png"
-    assert sniff_image_type(b"\xff\xd8....\xff\xd9") == "image/jpeg"
-    assert sniff_image_type(b"bad_data") is None
+import pytest
+from src.services.media_security import MediaSecurity
 
 
-def test_rejects_big_file(tmp_path: Path):
-    ok, reason = secure_save(tmp_path, b"\x89PNG\r\n\x1a\n" + b"0" * 5_000_001)
-    assert not ok
-    assert reason == "too_big"
+@pytest.fixture
+def media_security():
+    """Создаёт объект MediaSecurity для тестов."""
+    return MediaSecurity()
 
 
-def test_rejects_invalid_type(tmp_path: Path):
-    ok, reason = secure_save(tmp_path, b"not_an_image")
-    assert not ok
-    assert reason == "bad_type"
+def test_allowed_file(media_security):
+    file_name = "sample.png"
+    content_type = "image/png"
+    size = 1024
+    assert media_security.is_allowed(file_name, content_type, size) is True
 
 
-def test_problem_format():
-    resp = problem(400, "Bad Request", "Invalid input")
-    data = resp.body.decode()
-    assert "correlation_id" in data
-    assert "Invalid input" in data
+def test_disallowed_extension(media_security):
+    file_name = "sample.exe"
+    content_type = "application/octet-stream"
+    size = 1024
+    assert media_security.is_allowed(file_name, content_type, size) is False
 
 
-def test_env_loaded(monkeypatch):
-    monkeypatch.setenv("MEDIA_KEY", "secret123")
-    assert get_secret("MEDIA_KEY") == "secret123"
+def test_disallowed_size(media_security):
+    file_name = "sample.png"
+    content_type = "image/png"
+    size = 10 * 1024 * 1024  # 10 MB
+    assert media_security.is_allowed(file_name, content_type, size) is False
+
+
+def test_disallowed_content_type(media_security):
+    file_name = "sample.png"
+    content_type = "application/pdf"
+    size = 1024
+    assert media_security.is_allowed(file_name, content_type, size) is False
