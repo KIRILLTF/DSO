@@ -5,7 +5,7 @@ import os
 from fastapi import HTTPException, UploadFile
 
 
-class MediaSecurityService:
+class MediaSecurity:
     """
     Сервис для безопасной работы с медиа-файлами:
     - Проверка размера
@@ -22,7 +22,7 @@ class MediaSecurityService:
         Проверяет загружаемый файл на размер и тип
         """
         extension = file.filename.split(".")[-1].lower()
-        if extension not in MediaSecurityService.ALLOWED_EXTENSIONS:
+        if extension not in MediaSecurity.ALLOWED_EXTENSIONS:
             raise HTTPException(
                 status_code=400, detail=f"Extension '{extension}' not allowed"
             )
@@ -31,11 +31,11 @@ class MediaSecurityService:
         file.file.seek(0, os.SEEK_END)
         size_mb = file.file.tell() / (1024 * 1024)
         file.file.seek(0)
-        if size_mb > MediaSecurityService.MAX_FILE_SIZE_MB:
+        if size_mb > MediaSecurity.MAX_FILE_SIZE_MB:
             raise HTTPException(
                 status_code=400,
                 detail=f"File size {size_mb:.2f} MB exceeds limit of "
-                f"{MediaSecurityService.MAX_FILE_SIZE_MB} MB",
+                f"{MediaSecurity.MAX_FILE_SIZE_MB} MB",
             )
 
     @staticmethod
