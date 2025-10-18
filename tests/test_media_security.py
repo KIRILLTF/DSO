@@ -1,4 +1,5 @@
 import pytest
+
 from src.services.media_security import MediaSecurity
 
 
