@@ -15,6 +15,17 @@ class MediaSecurity:
 
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
     MAX_FILE_SIZE_MB = 5
+    ALLOWED_CONTENT_TYPES = {"image/png", "image/jpeg", "image/gif"}
+
+    def is_allowed(self, file_name: str, content_type: str, size: int) -> bool:
+        ext = file_name.split(".")[-1].lower()
+        if ext not in self.ALLOWED_EXTENSIONS:
+            return False
+        if content_type not in self.ALLOWED_CONTENT_TYPES:
+            return False
+        if size > self.MAX_FILE_SIZE_MB * 1024 * 1024:
+            return False
+        return True
 
     @staticmethod
     def validate_file(file: UploadFile) -> None:
