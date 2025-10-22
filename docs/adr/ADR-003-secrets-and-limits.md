@@ -50,4 +50,3 @@
 * **NFR**: Безопасность загрузки, отказоустойчивость.
 * **DFD**: Потоки загрузки файлов.
 * **RISKS/STRIDE**: R1, R2, R3; Tampering, Information disclosure, DoS.
-
