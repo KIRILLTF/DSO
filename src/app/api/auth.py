@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from src.database import get_db
 from src.domain.models import User
 
-SECRET_KEY = "supersecretkey"  # вынеси потом в .env
+SECRET_KEY = "supersecretkey"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

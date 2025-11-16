@@ -25,7 +25,6 @@ def read_media(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # Можно добавить проверку доступа, если нужно
     return MediaService.get(db, media_id)
 
 

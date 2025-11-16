@@ -19,7 +19,3 @@ app.include_router(media_router, tags=["media"])
 async def add_request_id(request, call_next):
     response = await call_next(request)
     return response
-
-
-# Все эндпоинты /media/... теперь описаны только в media_router
-# Эндпоинты /auth/... описаны только в auth_router
