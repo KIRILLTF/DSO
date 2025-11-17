@@ -67,7 +67,7 @@ def test_secure_save_path_traversal():
 
 
 def test_file_size_limit():
-    """Тест ограничения размера файла"""
+    """Тест ограничения размера  файла"""
     large_data = b"x" * (6 * 1024 * 1024)  # 6MB > 5MB limit
     file = UploadFile(filename="large.jpg", file=BytesIO(large_data))
 
