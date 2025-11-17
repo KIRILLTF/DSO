@@ -1,3 +1,4 @@
+# src/services/auth_service.py
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -11,7 +12,8 @@ from src.database import get_db
 from src.domain.models import User
 from src.domain.schemas import Token, UserCreate, UserResponse
 
-SECRET_KEY = "your_secret_key"
+# Выносим SECRET_KEY в environment variables для продакшн
+SECRET_KEY = "your_secret_key"  # В продакшн заменить на os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

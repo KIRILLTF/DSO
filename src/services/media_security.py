@@ -1,3 +1,4 @@
+# src/services/media_security.py
 import os
 import uuid
 from pathlib import Path
@@ -6,9 +7,7 @@ from fastapi import HTTPException, UploadFile
 
 
 class MediaSecurity:
-    """
-    Сервис для безопасной работы с медиа-файлами
-    """
+    """Сервис для безопасной работы с медиа-файлами"""
 
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
     MAX_FILE_SIZE_MB = 5
@@ -32,27 +31,27 @@ class MediaSecurity:
 
     @classmethod
     def validate_file(cls, file: UploadFile) -> bytes:
-        """
-        Проверяет загружаемый файл на размер, тип и содержание
-        Возвращает содержимое файла если проверка пройдена
-        """
+        """Проверяет загружаемый файл на размер, тип и содержание"""
         # Проверяем расширение
         extension = file.filename.split(".")[-1].lower() if file.filename else ""
         if extension not in cls.ALLOWED_EXTENSIONS:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Extension '{extension}' not allowed. Allowed: {', '.join(cls.ALLOWED_EXTENSIONS)}",
+            error_msg = (
+                f"Extension '{extension}' not allowed. "
+                f"Allowed: {', '.join(cls.ALLOWED_EXTENSIONS)}"
             )
+            raise HTTPException(status_code=400, detail=error_msg)
 
         # Читаем и проверяем размер файла
         content = file.file.read()
         file_size = len(content)
 
         if file_size > cls.MAX_FILE_SIZE_MB * 1024 * 1024:
-            raise HTTPException(
-                status_code=400,
-                detail=f"File size {file_size / (1024 * 1024):.2f} MB exceeds limit of {cls.MAX_FILE_SIZE_MB} MB",
+            size_mb = file_size / (1024 * 1024)
+            error_msg = (
+                f"File size {size_mb:.2f} MB exceeds "
+                f"limit of {cls.MAX_FILE_SIZE_MB} MB"
             )
+            raise HTTPException(status_code=400, detail=error_msg)
 
         # Проверяем magic bytes
         detected_type = cls.sniff_content_type(content)
@@ -64,10 +63,11 @@ class MediaSecurity:
 
         # Проверяем соответствие заявленного типа и реального
         if file.content_type and file.content_type != detected_type:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Declared content type '{file.content_type}' doesn't match actual '{detected_type}'",
+            error_msg = (
+                f"Declared content type '{file.content_type}' "
+                f"doesn't match actual '{detected_type}'"
             )
+            raise HTTPException(status_code=400, detail=error_msg)
 
         # Возвращаем указатель в начало
         file.file.seek(0)
@@ -75,9 +75,7 @@ class MediaSecurity:
 
     @staticmethod
     def secure_filename(filename: str) -> str:
-        """
-        Безопасное имя файла с UUID
-        """
+        """Безопасное имя файла с UUID"""
         # Очищаем оригинальное имя
         original_name = os.path.basename(filename)
         name, ext = os.path.splitext(original_name)
@@ -89,9 +87,7 @@ class MediaSecurity:
 
     @staticmethod
     def secure_save(file_content: bytes, upload_dir: Path, filename: str) -> Path:
-        """
-        Безопасное сохранение файла с проверкой пути
-        """
+        """Безопасное сохранение файла с проверкой пути"""
         upload_dir = upload_dir.resolve()
         file_path = (upload_dir / filename).resolve()
 

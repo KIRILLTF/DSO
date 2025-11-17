@@ -36,25 +36,20 @@ build-backend = "setuptools.build_meta"
 [tool.ruff]
 target-version = "py311"
 line-length = 100
-
-[tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "S"]
 ignore = [
-    "S101",  # assert в тестах - это нормально
-    "S105",  # хардкодные пароли
-    "S106",  # хардкодные пароли в аргументах
-    "B008",  # Depends в FastAPI
-    "B904",  # raise from в except
-    "F841",  # неиспользуемые переменные
+    "S105",  # Игнорировать хардкодные пароли
+    "B008",  # Игнорировать Depends в FastAPI
+    "B904",  # Игнорировать raise from в except
+    "F841",  # Игнорировать неиспользуемые переменные
 ]
 exclude = ["venv", ".venv", "build", "dist"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
-"tests/*" = ["S101", "S106", "S105", "F841", "E501"]
-"src/tests/*" = ["S101", "S106", "S105", "F841", "E501"]
-"src/app/api/*" = ["B008", "S105", "S106"]
-"src/services/*" = ["B008", "S105", "S106", "E501"]
+"tests/*" = ["S101", "S106", "S105", "F841"]
+"src/app/api/*" = ["B008", "S105"]
+"src/services/auth_service.py" = ["B008", "S105"]
 
 [tool.isort]
 profile = "black"
