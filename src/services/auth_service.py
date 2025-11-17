@@ -11,7 +11,7 @@ from src.database import get_db
 from src.domain.models import User
 from src.domain.schemas import Token, UserCreate, UserResponse
 
-SECRET_KEY = "your_secret_key"  # замени на реальный секрет
+SECRET_KEY = "your_secret_key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

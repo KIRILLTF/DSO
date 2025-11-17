@@ -35,7 +35,7 @@ async def register(user: UserCreate):
     password_to_hash = user.password[:MAX_BCRYPT_PASSWORD_LENGTH]
     hashed_password = pwd_context.hash(password_to_hash)
 
-    # Сохраняем пользователя в "БД" (заменить на реальный код сохранения)
+    # Сохраняем пользователя в "БД"
     fake_db[user.username] = hashed_password
 
     return {"username": user.username, "hashed_password": hashed_password}

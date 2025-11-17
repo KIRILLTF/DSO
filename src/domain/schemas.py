@@ -3,9 +3,6 @@ from typing import Optional
 from pydantic import BaseModel
 
 
-# -------------------
-# Пользователь
-# -------------------
 class UserBase(BaseModel):
     username: str
 
@@ -36,9 +33,6 @@ class TokenData(BaseModel):
     username: Optional[str] = None
 
 
-# -------------------
-# Медиаресурс
-# -------------------
 class MediaBase(BaseModel):
     title: str
     description: Optional[str] = None
@@ -55,6 +49,6 @@ class MediaUpdate(MediaBase):
 class MediaRead(MediaBase):
     id: int
     type: str
-    user_id: int  # исправлено с owner_id на user_id
+    user_id: int
 
     model_config = {"from_attributes": True}
