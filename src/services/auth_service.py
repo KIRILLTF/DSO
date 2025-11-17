@@ -77,7 +77,8 @@ class AuthService:
             )
 
         access_token = self.create_access_token(data={"sub": str(user.id)})
-        return Token(access_token=access_token, token_type="bearer")
+        token_type = "bearer"
+        return Token(access_token=access_token, token_type=token_type)
 
 
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
