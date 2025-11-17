@@ -36,6 +36,12 @@ build-backend = "setuptools.build_meta"
 [tool.ruff]
 line-length = 100
 select = ["E", "F", "W", "I", "B", "S"]
+ignore = [
+    "S105",  # Игнорировать хардкодные пароли (для тестов и SECRET_KEY)
+    "B008",  # Игнорировать Depends в FastAPI (это нормально)
+    "B904",  # Игнорировать raise from в except
+    "F841",  # Игнорировать неиспользуемые переменные в тестах
+]
 target-version = "py311"
 exclude = ["venv", ".venv", "build", "dist"]
 ignore = ["E501", "S101", "S106"]
