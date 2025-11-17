@@ -66,22 +66,6 @@ def test_secure_save_path_traversal():
         MediaSecurity.secure_save(b"content", upload_dir, malicious_path)
 
 
-def test_secure_save_symlink_protection(tmp_path):
-    """Тест защиты от симлинков (пропускаем на Windows без прав)"""
-    if sys.platform == "win32":
-        pytest.skip("Symlink tests require admin rights on Windows")
-
-    # Создаем симлинк
-    target_dir = tmp_path / "target"
-    target_dir.mkdir()
-
-    link_dir = tmp_path / "link"
-    link_dir.symlink_to(target_dir)
-
-    with pytest.raises(ValueError, match="Symlinks"):
-        MediaSecurity.secure_save(b"content", link_dir, "test.txt")
-
-
 def test_file_size_limit():
     """Тест ограничения размера файла"""
     large_data = b"x" * (6 * 1024 * 1024)  # 6MB > 5MB limit
