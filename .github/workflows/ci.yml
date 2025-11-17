@@ -37,7 +37,7 @@ jobs:
       - name: Pre-commit (all files)
         run: pre-commit run --all-files
 
-      # === ДОБАВЛЯЕМ SECURITY SCANNING ДЛЯ P07 ===
+      # === CONTAINER SECURITY SCANNING ===
       - name: Build Docker image
         run: |
           docker build -t media-service:${{ github.sha }} .
@@ -55,33 +55,26 @@ jobs:
           sarif_file: hadolint-results.sarif
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: media-service:${{ github.sha }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'HIGH,CRITICAL'
-
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trivy-results.sarif
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image media-service:${{ github.sha }}
 
       - name: Run container security tests
         run: |
           # Запускаем контейнер и проверяем security features
           docker run -d --name test-container -p 8000:8000 media-service:${{ github.sha }}
           sleep 10
-
+          
           # Проверяем healthcheck
           curl -f http://localhost:8000/health || exit 1
-
+          
           # Проверяем что контейнер запущен не под root
           docker exec test-container id -u | grep -v '^0$' || exit 1
-
+          
           # Проверяем security opts (если есть в docker-compose)
           docker inspect test-container | grep -i '"user"' || exit 1
-
+          
           docker stop test-container
           docker rm test-container
 
