@@ -52,3 +52,20 @@ class MediaRead(MediaBase):
     user_id: int
 
     model_config = {"from_attributes": True}
+
+
+class ReviewBase(BaseModel):
+    content: str
+    rating: int
+    media_id: Optional[int] = None
+
+
+class ReviewCreate(ReviewBase):
+    pass
+
+
+class ReviewResponse(ReviewBase):
+    id: int
+    owner_id: int
+
+    model_config = {"from_attributes": True}

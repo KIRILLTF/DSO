@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from src.database import Base
@@ -26,3 +26,13 @@ class Media(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
 
     user = relationship("User", back_populates="media")
+
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id = Column(Integer, primary_key=True, index=True)
+    content = Column(Text, nullable=False)
+    rating = Column(Integer, nullable=False)
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    media_id = Column(Integer, ForeignKey("media.id"), nullable=True)

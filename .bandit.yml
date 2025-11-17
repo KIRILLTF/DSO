@@ -1,0 +1,8 @@
+# Конфигурация bandit для security scanning
+skips: ['B101', 'B105', 'B106', 'B107']
+exclude_dirs: ['tests', 'migrations', 'venv', '.venv']
+
+# Настройки для разных типов проверок
+tests:
+  - B201
+  - B301
