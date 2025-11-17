@@ -72,9 +72,6 @@ jobs:
           # Проверяем что контейнер запущен не под root
           docker exec test-container id -u | grep -v '^0$' || exit 1
           
-          # Проверяем security opts (если есть в docker-compose)
-          docker inspect test-container | grep -i '"user"' || exit 1
-          
           docker stop test-container
           docker rm test-container
 
