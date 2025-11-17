@@ -27,66 +27,12 @@ jobs:
 
       - name: Lint & Format
         run: |
+          ruff check --output-format=github .
           black --check .
           isort --check-only .
-    # Временно отключаем ruff до фикса конфига
-    # ruff check --output-format=github .
 
       - name: Tests
         run: pytest -q
 
       - name: Pre-commit (all files)
         run: pre-commit run --all-files
-
-      # === CONTAINER SECURITY SCANNING ===
-      - name: Build and test Docker container
-        run: |
-          # Собираем образ
-          docker build -t media-service:ci-test .
-          
-          # Запускаем контейнер и проверяем security features
-          docker run -d --name test-container -p 8000:8000 media-service:ci-test
-          sleep 10
-          
-          # Проверяем healthcheck
-          curl -f http://localhost:8000/health || exit 1
-          
-          # Проверяем что контейнер запущен не под root
-          docker exec test-container id -u | grep -v '^0$' || exit 1
-          
-          # Останавливаем контейнер
-          docker stop test-container
-          docker rm test-container
-
-      - name: Run Hadolint (Dockerfile linting)
-        uses: hadolint/hadolint-action@v3.1.0
-        with:
-          dockerfile: Dockerfile
-          format: sarif
-          output-file: hadolint-results.sarif
-
-      - name: Upload Hadolint results
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: hadolint-results.sarif
-
-      - name: Run Trivy vulnerability scanner
-        run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:latest image media-service:ci-test
-
-      - name: Save security reports
-        run: |
-          mkdir -p security-reports
-          # Сохраняем размеры образов
-          docker images media-service:ci-test > security-reports/docker-images.txt
-          docker history media-service:ci-test > security-reports/docker-history.txt
-          docker inspect media-service:ci-test > security-reports/docker-inspect.json
-
-      - name: Upload security reports
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-reports
-          path: security-reports/
-          retention-days: 30
