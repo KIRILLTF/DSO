@@ -80,7 +80,6 @@ class AuthService:
         token_type = "bearer"
         return Token(access_token=access_token, token_type=token_type)
 
-
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:
     return AuthService(db)
 
