@@ -38,9 +38,24 @@ jobs:
         run: pre-commit run --all-files
 
       # === CONTAINER SECURITY SCANNING ===
-      - name: Build Docker image
+      - name: Build and test Docker container
         run: |
+          # Собираем образ
           docker build -t media-service:ci-test .
+          
+          # Запускаем контейнер и проверяем security features
+          docker run -d --name test-container -p 8000:8000 media-service:ci-test
+          sleep 10
+          
+          # Проверяем healthcheck
+          curl -f http://localhost:8000/health || exit 1
+          
+          # Проверяем что контейнер запущен не под root
+          docker exec test-container id -u | grep -v '^0$' || exit 1
+          
+          # Останавливаем контейнер
+          docker stop test-container
+          docker rm test-container
 
       - name: Run Hadolint (Dockerfile linting)
         uses: hadolint/hadolint-action@v3.1.0
@@ -60,23 +75,7 @@ jobs:
             -v /var/run/docker.sock:/var/run/docker.sock \
             aquasec/trivy:latest image media-service:ci-test
 
-      - name: Run container security tests
-        run: |
-          # Запускаем контейнер и проверяем security features
-          docker run -d --name test-container -p 8000:8000 media-service:ci-test
-          sleep 10
-          
-          # Проверяем healthcheck
-          curl -f http://localhost:8000/health || exit 1
-          
-          # Проверяем что контейнер запущен не под root
-          docker exec test-container id -u | grep -v '^0$' || exit 1
-          
-          docker stop test-container
-          docker rm test-container
-
       - name: Save security reports
-        if: always()
         run: |
           mkdir -p security-reports
           # Сохраняем размеры образов
@@ -85,7 +84,6 @@ jobs:
           docker inspect media-service:ci-test > security-reports/docker-inspect.json
 
       - name: Upload security reports
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: security-reports
