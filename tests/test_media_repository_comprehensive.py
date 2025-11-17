@@ -1,4 +1,9 @@
-from src.adapters.media_repository import create_media, delete_media, get_media_by_id, update_media
+from src.adapters.media_repository import (
+    create_media,
+    delete_media,
+    get_media_by_id,
+    update_media,
+)
 from src.database import get_db
 from src.domain.schemas import MediaCreate, MediaUpdate
 
