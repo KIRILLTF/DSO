@@ -1,6 +1,5 @@
 # src/services/auth_service.py
 from datetime import datetime, timedelta
-from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -51,15 +50,13 @@ class AuthService:
             id=new_user.id, username=new_user.username, email=new_user.email
         )
 
-    def authenticate_user(self, username: str, password: str) -> Optional[User]:
+    def authenticate_user(self, username: str, password: str) -> User | None:
         user = self.db.query(User).filter(User.username == username).first()
         if not user or not self.verify_password(password, user.password):
             return None
         return user
 
-    def create_access_token(
-        self, data: dict, expires_delta: Optional[timedelta] = None
-    ):
+    def create_access_token(self, data: dict, expires_delta: timedelta | None = None):
         to_encode = data.copy()
         expire = datetime.utcnow() + (
             expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

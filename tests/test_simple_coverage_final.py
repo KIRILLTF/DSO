@@ -1,3 +1,4 @@
+from datetime import UTC
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
@@ -180,12 +181,12 @@ def test_security_files_simple():
 
 def test_security_validation_simple():
     """Простой тест security validation"""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from src.app.security.validation import normalize, parse_payment
 
     # Тестируем normalize
-    dt = datetime(2023, 1, 1, 12, 0, tzinfo=timezone.utc)
+    dt = datetime(2023, 1, 1, 12, 0, tzinfo=UTC)
     normalized = normalize(dt)
     assert normalized.tzinfo is None
 

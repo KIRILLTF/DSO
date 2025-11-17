@@ -82,10 +82,10 @@ class AuditService:
         sensitive_fields = {"password", "token", "email", "credit_card", "secret"}
         sanitized = {}
         for k, v in details.items():
-            if k in sensitive_fields:
-                sanitized[k] = "***MASKED***"
-            elif isinstance(v, str) and any(
-                field in k.lower() for field in sensitive_fields
+            if (
+                k in sensitive_fields
+                or isinstance(v, str)
+                and any(field in k.lower() for field in sensitive_fields)
             ):
                 sanitized[k] = "***MASKED***"
             else:

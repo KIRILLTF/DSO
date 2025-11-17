@@ -73,7 +73,7 @@ def test_user_repository_complete():
         # Создаем пользователя
         import bcrypt
 
-        hashed_password = bcrypt.hashpw("testpass".encode(), bcrypt.gensalt()).decode()
+        hashed_password = bcrypt.hashpw(b"testpass", bcrypt.gensalt()).decode()
         user = User(
             username="repo_user", password=hashed_password, email="repo@test.com"
         )

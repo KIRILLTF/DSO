@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, Field
@@ -14,7 +14,7 @@ class Payment(BaseModel):
 
 def normalize(dt: datetime) -> datetime:
     """Переводим datetime в UTC без tzinfo"""
-    return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt.astimezone(UTC).replace(tzinfo=None)
 
 
 def parse_payment(raw_json: str) -> Payment:
