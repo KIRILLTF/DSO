@@ -9,7 +9,7 @@ def create_media(db: Session, media_data: MediaCreate, user_id: int) -> Media:
         title=media_data.title,
         description=media_data.description,
         type=media_data.type,
-        user_id=user_id,  # исправлено с owner_id на user_id
+        user_id=user_id,
     )
     db.add(db_media)
     db.commit()

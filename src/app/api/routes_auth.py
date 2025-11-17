@@ -12,7 +12,6 @@ from src.domain.schemas import UserCreate, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# ===== Конфиг токенов =====
 SECRET_KEY = "supersecretkey"  # потом вынести в .env
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
@@ -21,9 +20,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
-# ===== Утилиты =====
 def verify_password(plain_password, hashed_password):
-    # Ограничиваем длину пароля для bcrypt (максимум 72 байта)
     password_to_verify = plain_password[:72].encode("utf-8")
     return bcrypt.checkpw(password_to_verify, hashed_password.encode("utf-8"))
 
@@ -67,14 +64,12 @@ async def get_current_user(
     return user
 
 
-# ===== Роуты =====
 @router.post("/register", response_model=UserResponse, status_code=201)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == user.username).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Username already exists")
 
-    # Ограничиваем длину пароля для bcrypt (максимум 72 байта)
     password_to_hash = user.password[:72].encode("utf-8")
     hashed_password = bcrypt.hashpw(password_to_hash, bcrypt.gensalt())
     db_user = User(
