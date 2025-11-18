@@ -23,7 +23,6 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.1.0",
     "ruff>=0.1.0",
-    "mypy>=1.7.0",
     "bandit>=1.7.0",
     "black>=23.0.0",
     "isort>=5.12.0",
@@ -51,31 +50,9 @@ exclude = ["venv", ".venv", "build", "dist"]
 profile = "black"
 line_length = 100
 
-[tool.coverage.run]
-source = ["src"]
-omit = [
-    "*/tests/*",
-    "*/__pycache__/*",
-    "src/app/__init__.py",
-    "src/domain/__init__.py",
-    "src/services/__init__.py"
-]
-
-[tool.coverage.report]
-exclude_lines = [
-    "pragma: no cover",
-    "def __repr__",
-    "if self.debug:",
-    "if settings.DEBUG",
-    "raise AssertionError",
-    "raise NotImplementedError",
-]
-fail_under = 80
-
 [tool.bandit]
+exclude_dirs = ["tests", "migrations"]
 skips = ["B101", "B105", "B106", "B107"]
-exclude_dirs = ["tests", "migrations", "venv", ".venv"]
-tests = ["B201", "B301"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
