@@ -40,4 +40,4 @@ jobs:
       - name: Pre-commit checks
         run: |
           pip install pre-commit
-          pre-commit run --all-files #..
+          pre-commit run --all-files

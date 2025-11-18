@@ -38,13 +38,13 @@ target-version = "py311"
 line-length = 100
 select = ["E", "F", "W", "I", "B", "S"]
 ignore = [
-    "S101",  # assert в тестах - это нормально
-    "S105",  # хардкодные пароли
-    "S106",  # хардкодные пароли в аргументах
-    "B008",  # Depends в FastAPI
-    "B904",  # raise from в except
-    "F841",  # неиспользуемые переменные
-    "W292",  # No newline at end of file
+    "S101",
+    "S105",
+    "S106",
+    "B008",
+    "B904",
+    "F841",
+    "W292",
 ]
 exclude = ["venv", ".venv", "build", "dist"]
 
@@ -81,10 +81,8 @@ exclude_lines = [
 fail_under = 80
 
 [tool.bandit]
-# Конфигурация bandit для security scanning
 skips = ["B101", "B105", "B106", "B107"]
 exclude_dirs = ["tests", "migrations", "venv", ".venv"]
-# Настройки для разных типов проверок
 tests = ["B201", "B301"]
 
 [tool.pytest.ini_options]
