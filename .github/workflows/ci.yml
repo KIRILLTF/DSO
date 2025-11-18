@@ -41,3 +41,27 @@ jobs:
         run: |
           pip install pre-commit
           pre-commit run --all-files
+
+  # ★ Базовое сканирование для каждого PR ★
+  dockerfile-scan:
+    name: 🔍 Scan Dockerfile
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Scan Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          format: sarif
+          output-file: hadolint-results.sarif
+          failure-threshold: warning
+          no-fail: true
+
+      - name: Upload Hadolint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: hadolint-scan-report
+          path: hadolint-results.sarif
+          retention-days: 90

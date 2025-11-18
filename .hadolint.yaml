@@ -1,0 +1,39 @@
+# Custom Hadolint Security Policies
+
+# Ignored rules with justification
+ignored:
+  # DL3008 - Pin versions in apt get install
+  # Reason: We use apt-get update && apt-get install in same RUN for cache busting
+  - DL3008
+
+  # DL3015 - Avoid additional packages by specifying `--no-install-recommends`
+  # Reason: We need recommended packages for full functionality
+  - DL3015
+
+  # DL3059 - Multiple consecutive `RUN` instructions
+  # Reason: We separate for better layer caching and readability
+  - DL3059
+
+  # DL4006 - Set the SHELL option -o pipefail before RUN with a pipe
+  # Reason: We use bash explicitly where needed
+  - DL4006
+
+# Trusted registries
+trustedRegistries:
+  - docker.io
+  - ghcr.io
+  - gcr.io
+
+# Custom rule settings
+override:
+  error:
+    - DL3013
+    - DL3025
+  warning:
+    - DL3003
+    - DL3016
+  info:
+    - DL3007
+    - DL3018
+
+failure-threshold: warning

@@ -1,0 +1,13 @@
+echo "# Security Policy Exceptions
+# ==========================
+# Approved vulnerabilities with business justification
+
+# CVE-2023-XXXXX - False positive in development dependency
+# Risk: Low - Only affects dev environment
+# Justification: This CVE is for a tool used only in CI, not in production
+
+# CVE-2024-YYYYY - Accepted risk, no patch available
+# Risk: Medium - No known exploits
+# Justification: Base image maintainer hasn't released fix, monitored weekly
+
+# Add actual CVE IDs after first scan" > .trivyignore
