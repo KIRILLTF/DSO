@@ -17,14 +17,12 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install bandit pytest-cov  # ДОБАВЛЯЕМ bandit
+          pip install bandit pytest-cov
           pip install -r requirements.txt
 
-      # ДОБАВЛЯЕМ SECURITY SCAN
       - name: Bandit Security Scan
         run: bandit -r src/ -c pyproject.toml -f json
 
-      # ДОБАВЛЯЕМ COVERAGE GATE
       - name: Tests with coverage
         run: |
           pytest --cov=src --cov-report=xml --cov-fail-under=80
