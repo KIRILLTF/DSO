@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 import pytest
@@ -29,6 +29,6 @@ def test_parse_payment_invalid_currency():
 
 
 def test_normalize_datetime():
-    dt = datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc)
+    dt = datetime(2025, 1, 1, 12, 0, tzinfo=UTC)
     norm = normalize(dt)
     assert norm.tzinfo is None

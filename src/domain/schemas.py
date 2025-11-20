@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel
 
 
@@ -9,12 +7,12 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
-    email: Optional[str] = None
+    email: str | None = None
 
 
 class UserResponse(UserBase):
     id: int
-    email: Optional[str] = None
+    email: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -30,12 +28,12 @@ class Token(BaseModel):
 
 
 class TokenData(BaseModel):
-    username: Optional[str] = None
+    username: str | None = None
 
 
 class MediaBase(BaseModel):
     title: str
-    description: Optional[str] = None
+    description: str | None = None
 
 
 class MediaCreate(MediaBase):
@@ -43,12 +41,29 @@ class MediaCreate(MediaBase):
 
 
 class MediaUpdate(MediaBase):
-    type: Optional[str] = None
+    type: str | None = None
 
 
 class MediaRead(MediaBase):
     id: int
     type: str
     user_id: int
+
+    model_config = {"from_attributes": True}
+
+
+class ReviewBase(BaseModel):
+    content: str
+    rating: int
+    media_id: int | None = None
+
+
+class ReviewCreate(ReviewBase):
+    pass
+
+
+class ReviewResponse(ReviewBase):
+    id: int
+    owner_id: int
 
     model_config = {"from_attributes": True}

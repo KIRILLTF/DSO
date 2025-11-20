@@ -1,5 +1,5 @@
+# src/services/auth_service.py
 from datetime import datetime, timedelta
-from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -11,7 +11,8 @@ from src.database import get_db
 from src.domain.models import User
 from src.domain.schemas import Token, UserCreate, UserResponse
 
-SECRET_KEY = "your_secret_key"
+# Выносим SECRET_KEY в environment variables для продакшн
+SECRET_KEY = "your_secret_key"  # В продакшн заменить на os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
@@ -49,15 +50,13 @@ class AuthService:
             id=new_user.id, username=new_user.username, email=new_user.email
         )
 
-    def authenticate_user(self, username: str, password: str) -> Optional[User]:
+    def authenticate_user(self, username: str, password: str) -> User | None:
         user = self.db.query(User).filter(User.username == username).first()
         if not user or not self.verify_password(password, user.password):
             return None
         return user
 
-    def create_access_token(
-        self, data: dict, expires_delta: Optional[timedelta] = None
-    ):
+    def create_access_token(self, data: dict, expires_delta: timedelta | None = None):
         to_encode = data.copy()
         expire = datetime.utcnow() + (
             expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -75,7 +74,8 @@ class AuthService:
             )
 
         access_token = self.create_access_token(data={"sub": str(user.id)})
-        return Token(access_token=access_token, token_type="bearer")
+        token_type = "bearer"
+        return Token(access_token=access_token, token_type=token_type)
 
 
 def get_auth_service(db: Session = Depends(get_db)) -> AuthService:

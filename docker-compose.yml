@@ -1,0 +1,20 @@
+services:
+  app:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      - PYTHONUNBUFFERED=1
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=100m
+    volumes:
+      - ./data/uploads:/app/uploads:rw

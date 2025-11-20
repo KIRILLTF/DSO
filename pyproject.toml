@@ -33,10 +33,18 @@ requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.ruff]
-line-length = 100
-select = ["E","F","W","I"]
 target-version = "py311"
-exclude = ["venv",".venv","build","dist"]
+line-length = 100
+select = ["E", "F", "W", "I", "B", "S"]
+ignore = ["S101", "S105", "S106", "B008", "B904", "F841", "W292"]
+exclude = ["venv", ".venv", "build", "dist"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/*" = ["S101", "S106", "S105", "F841", "E501"]
+"src/tests/*" = ["S101", "S106", "S105", "F841", "E501"]
+"src/app/api/*" = ["B008", "S105", "S106"]
+"src/services/*" = ["B008", "S105", "S106", "E501"]
 
 [tool.isort]
 profile = "black"

@@ -1,0 +1,126 @@
+name: Security Scan (C4)
+
+on:
+  # Регулярное сканирование - каждый понедельник
+  schedule:
+    - cron: '0 6 * * 1'  # Понедельник 6:00 UTC
+  # При ручном запуске
+  workflow_dispatch:
+    inputs:
+      scan-type:
+        description: 'Type of scan'
+        required: true
+        default: 'full'
+        type: choice
+        options:
+        - 'quick'
+        - 'full'
+  # При изменениях в Dockerfile или push в main
+  push:
+    branches: [main]
+    paths:
+      - 'Dockerfile'
+      - '**/Dockerfile*'
+      - '.trivyignore'
+      - '.hadolint.yaml'
+
+jobs:
+  comprehensive-scan:
+    name: Comprehensive Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          docker build -t my-app:${{ github.sha }} .
+          docker tag my-app:${{ github.sha }} my-app:latest
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        id: trivy-scan
+        with:
+          image-ref: 'my-app:latest'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          ignore-unfixed: false
+          exit-code: 0  # Не падаем, чтобы сохранить отчет
+
+      - name: Run Trivy config scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'config'
+          format: 'sarif'
+          output: 'trivy-config-results.sarif'
+          exit-code: 0
+
+      - name: Upload results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Upload config results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-config-results.sarif'
+
+      - name: Generate security report
+        run: |
+          echo "# Security Scan Report" > security-report.md
+          echo "**Scan Date:** $(date)" >> security-report.md
+          echo "**Commit:** ${{ github.sha }}" >> security-report.md
+          echo "" >> security-report.md
+          echo "## Scan Summary" >> security-report.md
+          echo "- **Image Scan**: trivy" >> security-report.md
+          echo "- **Config Scan**: trivy" >> security-report.md
+          echo "- **Reports**: SARIF format" >> security-report.md
+          echo "- **Retention**: 90 days" >> security-report.md
+          echo "" >> security-report.md
+          echo "## Policies Applied" >> security-report.md
+          echo "- Custom .trivyignore" >> security-report.md
+          echo "- Custom .hadolint.yaml" >> security-report.md
+          echo "- Scheduled weekly scans" >> security-report.md
+
+      - name: Upload comprehensive reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-reports-${{ github.sha }}
+          path: |
+            trivy-results.sarif
+            trivy-config-results.sarif
+            security-report.md
+          retention-days: 90
+
+  hadolint-scan:
+    name: Dockerfile Lint Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Scan with custom Hadolint policies
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+          format: sarif
+          output-file: hadolint-results.sarif
+          config: .hadolint.yaml
+          no-fail: true
+
+      - name: Upload Hadolint results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'hadolint-results.sarif'
+
+      - name: Upload Hadolint report
+        uses: actions/upload-artifact@v4
+        with:
+          name: hadolint-custom-scan
+          path: hadolint-results.sarif
+          retention-days: 90
