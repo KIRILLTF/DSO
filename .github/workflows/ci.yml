@@ -31,6 +31,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt -r requirements-dev.txt
+          pip install pytest-cov
 
       - name: Lint (ruff)
         run: ruff check .
