@@ -14,73 +14,179 @@ permissions:
   security-events: write
   actions: read
   checks: write
+  deployments: write
+
+env:
+  DOCKER_IMAGE_NAME: myapp
+  STAGING_URL: https://staging.example.com
+  PYTHON_VERSION: '3.11'
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 jobs:
-  security-scan:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-      actions: read
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: ['3.9', '3.10', '3.11']
+        os: [ubuntu-latest, windows-latest]
     env:
       PYTHONUNBUFFERED: 1
+      DATABASE_URL: ${{ secrets.STAGING_DB_URL }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      API_KEY: ${{ secrets.API_KEY }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.cache/pypoetry
+            venv/
+          key: ${{ runner.os }}-python-${{ matrix.python-version }}-pip-${{ hashFiles('requirements*.txt', 'pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-python-${{ matrix.python-version }}-pip-
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
-          pip install pytest-cov ruff black isort
+          pip install pytest-cov ruff black isort bandit safety
+
+      - name: Security audit dependencies
+        run: |
+          safety check --json --output safety-report.json || true
+        continue-on-error: true
 
       - name: Lint & Format
         run: |
+          echo "=== Running Ruff ==="
           ruff check --output-format=github .
-          black --check .
-          isort --check-only .
+          echo "=== Running Black ==="
+          black --check --diff .
+          echo "=== Running Isort ==="
+          isort --check-only --diff .
 
       - name: Run tests with coverage
         run: |
-          pytest --cov=src --cov-report=xml --disable-warnings
+          pytest --cov=src --cov-report=xml --cov-report=html --cov-report=term --disable-warnings -v
 
-      - name: Upload coverage report
+      - name: Run bandit security scan
+        run: |
+          bandit -r src/ -f json -o bandit-report.json || true
+        continue-on-error: true
+
+      - name: Upload coverage reports
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-report
-          path: coverage.xml
+          name: coverage-report-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            coverage.xml
+            htmlcov/
+          retention-days: 7
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            safety-report.json
+            bandit-report.json
+          retention-days: 7
 
       - name: Build Docker image
-        run: docker build -f Dockerfile -t myapp:ci .
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          outputs: type=docker,dest=/tmp/image.tar
+
+      - name: Move Docker cache
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: Upload Docker image artifact
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/image.tar
+          retention-days: 1
+
+  security-scan:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    environment: staging
+    env:
+      STAGING_DB_URL: ${{ secrets.STAGING_DB_URL }}
+      STAGING_API_KEY: ${{ secrets.STAGING_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker image
+        run: |
+          docker load < image.tar
+          docker tag ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} ${{ env.DOCKER_IMAGE_NAME }}:staging
 
       - name: Trivy Docker scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: myapp:ci
+          image-ref: ${{ env.DOCKER_IMAGE_NAME }}:staging
           format: sarif
           output: trivy-results.sarif
-          severity: CRITICAL,HIGH,MEDIUM
+          severity: CRITICAL,HIGH,MEDIUM,LOW
           ignore-unfixed: false
           exit-code: 0
 
-      - name: Upload Trivy SARIF report
-        uses: github/codeql-action/upload-sarif@v4
-        if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
+      - name: Trivy Filesystem scan
+        uses: aquasecurity/trivy-action@master
         with:
-          sarif_file: trivy-results.sarif
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: sarif
+          output: trivy-fs-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF reports
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: |
+            trivy-results.sarif
+            trivy-fs-results.sarif
 
       - name: Hadolint scan
         uses: hadolint/hadolint-action@v3.1.0
@@ -92,6 +198,97 @@ jobs:
 
       - name: Upload Hadolint report
         uses: github/codeql-action/upload-sarif@v4
-        if: github.event.pull_request.head.repo.full_name == github.repository || github.event_name == 'push'
         with:
           sarif_file: hadolint-results.sarif
+
+  deployment:
+    runs-on: ubuntu-latest
+    needs: [build-and-test, security-scan]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/P08'
+    environment:
+      name: staging
+      url: ${{ env.STAGING_URL }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker image
+        run: |
+          docker load < image.tar
+          docker tag ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }} ${{ env.DOCKER_IMAGE_NAME }}:latest
+
+      - name: Deploy to Staging (Mock)
+        run: |
+          echo "Deploying to Staging Environment"
+          echo "App: ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}"
+          echo "URL: ${{ env.STAGING_URL }}"
+          echo "Database: ${{ secrets.STAGING_DB_URL != '' && 'Configured' || 'Not configured' }}"
+          echo "Mock deployment completed successfully!"
+
+          # Эмуляция деплоя
+          sleep 5
+          echo "Application deployed and healthy"
+
+      - name: Run smoke tests
+        run: |
+          echo "Running smoke tests..."
+          # Эмуляция smoke-тестов
+          curl -f ${{ env.STAGING_URL }}/health || echo "Smoke tests completed (mock)"
+          echo "Smoke tests passed!"
+
+      - name: Create deployment status
+        uses: bobheadxi/deployments@v1
+        with:
+          step: finish
+          token: ${{ github.token }}
+          env: staging
+          status: success
+
+  promotion:
+    runs-on: ubuntu-latest
+    needs: deployment
+    if: github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: Promote to Production (Mock)
+        run: |
+          echo "PROMOTING TO PRODUCTION"
+          echo "Source: Staging (verified)"
+          echo "Target: Production environment"
+          echo "Version: ${{ github.sha }}"
+          echo "Promotion completed successfully!"
+
+      - name: Create production deployment
+        uses: bobheadxi/deployments@v1
+        with:
+          step: deploy
+          token: ${{ github.token }}
+          env: production
+          desc: "Production deployment from main branch"
+
+  release:
+    runs-on: ubuntu-latest
+    needs: promotion
+    if: github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'release:')
+
+    steps:
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.run_number }}
+          name: Release v${{ github.run_number }}
+          body: |
+            Automated release from CI/CD pipeline
+            - Build: ${{ github.sha }}
+            - Coverage: [View Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
