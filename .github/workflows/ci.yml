@@ -144,43 +144,83 @@ jobs:
 
   deployment:
     runs-on: ubuntu-latest
-    needs: [build-and-test, security-scan]
+    needs: [ build-and-test, security-scan ]
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/P08'
     environment:
-      name: staging
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
       url: ${{ env.STAGING_URL }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy to Staging (Mock)
+      - name: Setup deployment environment
         run: |
-          echo "Deploying to Staging Environment"
-          echo "App: ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}"
-          echo "URL: ${{ env.STAGING_URL }}"
-          echo "Database: Configured"
-          echo "Mock deployment completed successfully!"
+          echo "DEPLOYMENT_ENV=${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}" >> $GITHUB_ENV
+          echo "APP_VERSION=${{ github.sha }}" >> $GITHUB_ENV
 
-      - name: Create deployment status
-        uses: bobheadxi/deployments@v1
+      - name: Generate deployment artifacts
+        run: |
+          echo "Generating deployment artifacts..."
+          mkdir -p deployment
+          # Создаем артефакты для деплоя
+          echo "version: ${{ github.sha }}" > deployment/manifest.yaml
+          echo "environment: ${{ env.DEPLOYMENT_ENV }}" >> deployment/manifest.yaml
+          echo "timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> deployment/manifest.yaml
+          echo "Artifacts generated"
+
+      - name: Upload deployment artifacts
+        uses: actions/upload-artifact@v4
         with:
-          step: finish
-          token: ${{ github.token }}
-          env: staging
-          status: success
+          name: deployment-package-${{ env.DEPLOYMENT_ENV }}
+          path: deployment/
+          retention-days: 30
 
-  promotion:
-    runs-on: ubuntu-latest
-    needs: deployment
-    if: github.ref == 'refs/heads/main'
-    environment: production
-
-    steps:
-      - name: Promote to Production (Mock)
+      - name: Simulate deployment process
         run: |
-          echo "PROMOTING TO PRODUCTION"
-          echo "Source: Staging (verified)"
-          echo "Target: Production environment"
-          echo "Version: ${{ github.sha }}"
-          echo "Promotion completed successfully!"
+          echo "Starting deployment to ${{ env.DEPLOYMENT_ENV }}..."
+          echo "Deployment Details:"
+          echo "  - Environment: ${{ env.DEPLOYMENT_ENV }}"
+          echo "  - Version: ${{ env.APP_VERSION }}"
+          echo "  - Timestamp: $(date -u)"
+          echo "  - Commit: ${{ github.event.head_commit.message }}"
+
+          # Эмуляция процесса деплоя
+          STEPS=("Pre-flight checks" "Package validation" "Infrastructure setup" "Service deployment" "Health verification")
+          for i in "${!STEPS[@]}"; do
+            echo "🔧 Step $((i+1)): ${STEPS[$i]}..."
+            sleep 3
+            echo "   ${STEPS[$i]} completed"
+          done
+
+          echo "Deployment to ${{ env.DEPLOYMENT_ENV }} successful!"
+          echo "Deployment Summary:"
+          echo "  - Status: SUCCESS"
+          echo "  - Duration: ~20s"
+          echo "  - Services: 1 deployed"
+          echo "  - Health: All systems operational"
+
+      - name: Create deployment report
+        run: |
+          echo "Creating deployment report..."
+          cat > deployment-report.md << EOF
+          # Deployment Report
+
+          ## Summary
+          - **Environment**: ${{ env.DEPLOYMENT_ENV }}
+          - **Status**: Success
+          - **Version**: ${{ env.APP_VERSION }}
+          - **Timestamp**: $(date -u)
+
+          ## Artifacts
+          - Docker image built and scanned
+          - Security checks passed
+          - Tests completed successfully
+
+          ## Next Steps
+          - Monitor application health
+          - Verify functionality in ${{ env.DEPLOYMENT_ENV }}
+          - Prepare for production promotion (if staging)
+          EOF
+
+          cat deployment-report.md
