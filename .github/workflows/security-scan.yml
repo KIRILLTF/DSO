@@ -42,7 +42,7 @@ jobs:
           docker tag my-app:${{ github.sha }} my-app:latest
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@v0.13.0
         id: trivy-scan
         with:
           image-ref: 'my-app:latest'
