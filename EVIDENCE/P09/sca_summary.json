@@ -1,1 +1,6 @@
-placeholder
+{
+  "Critical": 3,
+  "High": 28,
+  "Low": 8,
+  "Medium": 27
+}
