@@ -9,7 +9,7 @@ on:
       - ".github/workflows/ci-sbom-sca.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -29,17 +29,39 @@ jobs:
 
       - name: Generate SBOM (Syft CycloneDX)
         run: |
-          docker run --rm -v $PWD:/work -w /work anchore/syft:latest \
-            packages dir:. -o cyclonedx-json > EVIDENCE/P09/sbom.json
+          docker run --rm \
+            -v $PWD:/work \
+            -w /work \
+            anchore/syft:latest \
+            packages dir:. -o cyclonedx-json \
+            > EVIDENCE/P09/sbom.json
 
       - name: SCA Scan (Grype)
         run: |
-          set -e
-          docker run --rm -v $PWD:/work -w /work anchore/grype:latest \
-            sbom:/work/EVIDENCE/P09/sbom.json -o json > EVIDENCE/P09/sca_report.json
-          echo "# SCA summary" > EVIDENCE/P09/sca_summary.md
-          jq '[.matches[].vulnerability.severity] | group_by(.) | map({(.[0]): length}) | add' \
-            EVIDENCE/P09/sca_report.json >> EVIDENCE/P09/sca_summary.md || true
+          docker run --rm \
+            -v $PWD:/work \
+            -w /work \
+            anchore/grype:latest \
+            sbom:/work/EVIDENCE/P09/sbom.json \
+            -o json \
+            > EVIDENCE/P09/sca_report.json
+
+          jq '
+            .matches
+            | map(.vulnerability.severity)
+            | group_by(.)
+            | map({ (.[0]): length })
+            | add
+          ' EVIDENCE/P09/sca_report.json \
+          > EVIDENCE/P09/sca_summary.json || echo "{}" > EVIDENCE/P09/sca_summary.json
+
+      - name: Commit SBOM & SCA evidence
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add EVIDENCE/P09
+          git commit -m "P09: update SBOM & SCA evidence" || echo "Nothing to commit"
+          git push
 
       - name: Upload SBOM/SCA evidence
         if: always()
