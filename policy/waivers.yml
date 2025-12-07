@@ -1,0 +1,9 @@
+waivers:
+  - id: "CVE-2024-XXXX"
+    package: "example-lib"
+    version: "1.2.3"
+    severity: "High"
+    reason: "Transitive dependency; not used in runtime execution path"
+    issue: "https://github.com/your-org/your-repo/issues/1"
+    expires_at: "2025-12-31"
+    approved_by: "student@example.com"
