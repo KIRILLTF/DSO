@@ -1,11 +1,74 @@
 rules:
-  - id: py-unsafe-html-echo
+  - id: hardcoded-jwt-secret
     languages: [python]
-    message: "Потенциально небезопасный вывод пользовательских данных в HTMLResponse"
-    severity: WARNING
+    message: "Хардкод JWT секрета в коде. Используйте переменные окружения."
+    severity: ERROR
     patterns:
       - pattern: |
-          HTMLResponse(f"...{$X}...")
+          $ALGORITHM = "HS256"
+          $SECRET = "..."
+      - pattern: |
+          jwt.encode(..., key="...", ...)
+      - pattern: |
+          "secret" : "..."
     metadata:
       category: security
-      cwe: "CWE-79: Cross-site Scripting"
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+
+  - id: sql-injection-f-string
+    languages: [python]
+    message: "Потенциальная SQL-инъекция через f-строки в SQL-запросах"
+    severity: ERROR
+    pattern: |
+      f"SELECT ... {$VAR} ..."
+    pattern-inside: |
+      def $FUNC(...):
+        ...
+    metadata:
+      category: security
+      cwe: "CWE-89: SQL Injection"
+
+  - id: missing-authorization-check
+    languages: [python]
+    message: "Возможно отсутствует проверка авторизации перед операцией"
+    severity: WARNING
+    pattern: |
+      def $METHOD(...):
+        ...
+        $REPO.$OPERATION(...)
+    pattern-not: |
+      def $METHOD(...):
+        ...
+        if not $CHECK:
+          raise ...
+        ...
+        $REPO.$OPERATION(...)
+    pattern-inside: |
+      class $SERVICE:
+        ...
+    metadata:
+      category: security
+      cwe: "CWE-862: Missing Authorization"
+
+  - id: raw-request-body-access
+    languages: [python]
+    message: "Прямой доступ к request.body без использования Pydantic схем"
+    severity: WARNING
+    pattern: |
+      data = await request.$BODY()
+    pattern-not: |
+      data = await request.$BODY()
+      validated = $SCHEMA(**data)
+    metadata:
+      category: security
+      cwe: "CWE-20: Improper Input Validation"
+
+  - id: flask-debug-enabled
+    languages: [python]
+    message: "Flask приложение запускается с debug=True"
+    severity: ERROR
+    pattern: |
+      app.run(debug=True, ...)
+    metadata:
+      category: security
+      cwe: "CWE-489: Active Debug Code"

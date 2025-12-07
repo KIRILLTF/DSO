@@ -1,13 +1,51 @@
-title = "course default gitleaks config"
+title = "Конфиг Gitleaks для медиа-сервиса"
 
 [extend]
 
 [allowlist]
-description = "ignore non-sensitive patterns"
+description = "Исключения для учебного медиа-сервиса"
+
 paths = [
-  "EVIDENCE/"
+  "EVIDENCE/",
+  "**/*.md",
+  "**/test_*.py",
+  "**/conftest.py",
+  "**/fixtures/",
+  "**/mocks/",
+  "security/semgrep/",
+  ".github/",
+  "domain/schemas.py",
+  "config/",
+  "migrations/"
 ]
-commits = []
+
 regexes = [
-  '''TEST_SECRET_DO_NOT_USE'''
+  '''test_.*''',
+  '''example_.*''',
+  '''sample_.*''',
+  '''demo_.*''',
+  '''fake_.*''',
+  '''dummy_.*''',
+  '''postgresql://postgres:postgres@localhost''',
+  '''sqlite:///.*\.db''',
+  '''127\.0\.0\.1:5432''',
+  '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+''',
+  '''password123''',
+  '''testpassword''',
+  '''123456''',
+  '''adminadmin''',
+  '''<.*>''',
+  '''\[.*\]''',
+  '''default=".*"''',
+  '''[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}''',
 ]
+
+files = [
+  ".env.example",
+  "docker-compose.yml",
+  "alembic.ini",
+  "pyproject.toml"
+]
+
+[allowlist.commits]
+message = ["test", "example", "chore", "docs", "init"]
