@@ -27,9 +27,16 @@ jobs:
       - name: Ensure evidence dirs
         run: mkdir -p EVIDENCE/P09
 
+      - name: Check available versions
+        run: |
+          echo "Latest Syft version:"
+          docker run --rm anchore/syft:latest version
+          echo "Latest Grype version:"
+          docker run --rm anchore/grype:latest version
+
       - name: Generate SBOM with metadata
         run: |
-          docker run --rm -v $PWD:/work -w /work anchore/syft:1.38.0 \
+          docker run --rm -v $PWD:/work -w /work anchore/syft:latest \
             packages dir:. \
             --name "${{ github.repository }}" \
             --output cyclonedx-json \
@@ -39,11 +46,14 @@ jobs:
           echo "repository: ${{ github.repository }}" >> EVIDENCE/P09/sbom_metadata.txt
           echo "workflow_run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> EVIDENCE/P09/sbom_metadata.txt
           echo "generated_at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> EVIDENCE/P09/sbom_metadata.txt
+          echo "syft_version: $(docker run --rm anchore/syft:latest version)" >> EVIDENCE/P09/sbom_metadata.txt
 
       - name: SCA Scan
         run: |
-          docker run --rm -v $PWD:/work -w /work anchore/grype:v0.73.0 \
+          docker run --rm -v $PWD:/work -w /work anchore/grype:latest \
             sbom:/work/EVIDENCE/P09/sbom.json -o json > EVIDENCE/P09/sca_report.json
+          
+          echo "grype_version: $(docker run --rm anchore/grype:latest version)" >> EVIDENCE/P09/sbom_metadata.txt
 
       - name: Build enhanced SCA summary
         run: |
@@ -54,7 +64,7 @@ jobs:
           echo "- Branch: ${{ github.ref_name }}" >> EVIDENCE/P09/sca_summary.md
           echo "- Workflow run: [#${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> EVIDENCE/P09/sca_summary.md
           echo "- Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> EVIDENCE/P09/sca_summary.md
-          echo "- Tools: Syft 1.38.0, Grype v0.73.0" >> EVIDENCE/P09/sca_summary.md
+          echo "- Tools: $(docker run --rm anchore/syft:latest version), $(docker run --rm anchore/grype:latest version)" >> EVIDENCE/P09/sca_summary.md
           
           echo "" >> EVIDENCE/P09/sca_summary.md
           echo "## Vulnerability Summary" >> EVIDENCE/P09/sca_summary.md
@@ -112,4 +122,3 @@ jobs:
         with:
           name: P09_EVIDENCE_${{ github.run_id }}
           path: EVIDENCE/P09
-
