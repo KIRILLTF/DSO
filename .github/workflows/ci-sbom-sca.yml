@@ -9,7 +9,7 @@ on:
       - ".github/workflows/ci-sbom-sca.yml"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -29,14 +29,12 @@ jobs:
 
       - name: Generate SBOM with metadata
         run: |
-          # Генерируем SBOM с новым синтаксисом
           docker run --rm -v $PWD:/work -w /work anchore/syft:latest \
             scan dir:. \
             --scope all-layers \
             --output cyclonedx-json \
             --file EVIDENCE/P09/sbom.json
           
-          # Добавляем метаданные
           echo "commit: ${{ github.sha }}" > EVIDENCE/P09/sbom_metadata.txt
           echo "repository: ${{ github.repository }}" >> EVIDENCE/P09/sbom_metadata.txt
           echo "workflow_run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> EVIDENCE/P09/sbom_metadata.txt
@@ -66,7 +64,6 @@ jobs:
           echo "| Severity | Count |" >> EVIDENCE/P09/sca_summary.md
           echo "|----------|-------|" >> EVIDENCE/P09/sca_summary.md
           
-          # Проверяем, есть ли уязвимости
           if [ -s EVIDENCE/P09/sca_report.json ]; then
             for sev in Critical High Medium Low Unknown; do
               count=$(jq '[.matches[].vulnerability.severity | select(. == "'"$sev"'")] | length' EVIDENCE/P09/sca_report.json 2>/dev/null || echo "0")
@@ -97,7 +94,7 @@ jobs:
               echo "### Immediate Actions (Critical: $critical_count)" >> EVIDENCE/P09/sca_summary.md
               echo "1. Анализ всех Critical уязвимостей" >> EVIDENCE/P09/sca_summary.md
               echo "2. Обновление зависимостей до безопасных версий" >> EVIDENCE/P09/sca_summary.md
-              echo "3. Создание waivers для неустранимых" >> EVIDENCE/P09/sca_summary.md
+              echo "3. Проверить waivers в [policy/waivers.yml](../../policy/waivers.yml)" >> EVIDENCE/P09/sca_summary.md
             fi
             
             if [ "$high_count" -gt 0 ]; then
@@ -116,9 +113,23 @@ jobs:
           echo "## Next Steps" >> EVIDENCE/P09/sca_summary.md
           echo "1. Просмотреть полный отчет: [sca_report.json](./sca_report.json)" >> EVIDENCE/P09/sca_summary.md
           echo "2. Обновить зависимости через PR" >> EVIDENCE/P09/sca_summary.md
-          echo "3. Оформить waivers для исключений в [policy/waivers.yml](../../policy/waivers.yml)" >> EVIDENCE/P09/sca_summary.md
+          echo "3. Проверить актуальность waivers в [policy/waivers.yml](../../policy/waivers.yml)" >> EVIDENCE/P09/sca_summary.md
 
-      - name: Upload evidence
+      - name: Commit and push evidence to branch
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          
+          # Проверяем есть ли изменения в EVIDENCE/P09
+          if git diff --quiet HEAD -- EVIDENCE/P09/; then
+            echo "No changes in EVIDENCE/P09"
+          else
+            git add EVIDENCE/P09/
+            git commit -m "P09: update SBOM & SCA evidence [skip ci]"
+            git push
+          fi
+
+      - name: Upload evidence as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
