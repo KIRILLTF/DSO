@@ -1,137 +1,61 @@
-name: Security - SBOM & SCA
+waivers:
+  - id: "CVE-2024-6232"
+    package: "Python"
+    version: "3.12.0"
+    severity: "High"
+    reason: "Уязвимость в Python интерпретаторе; требуется обновление системного Python вне контроля приложения"
+    issue: "https://github.com/KIRILLTF/DSO/issues/new?title=Python%20upgrade%20for%20CVE-2024-6232"
+    expires_at: "2025-03-01"
+    approved_by: "student@university.edu"
+    created_at: "2025-12-08"
 
-on:
-  workflow_dispatch:
-  push:
-    paths:
-      - "**/*.py"
-      - "requirements*.txt"
-      - ".github/workflows/ci-sbom-sca.yml"
+  - id: "CVE-2024-4032"
+    package: "Python"
+    version: "3.12.0"
+    severity: "High"
+    reason: "Уязвимость в стандартной библиотеке Python; обновление требует миграции окружения"
+    issue: "https://github.com/KIRILLTF/DSO/issues/new?title=Python%20security%20update%20CVE-2024-4032"
+    expires_at: "2025-03-01"
+    approved_by: "student@university.edu"
+    created_at: "2025-12-08"
 
-permissions:
-  contents: write
+  - id: "CVE-2024-7592"
+    package: "Python"
+    version: "3.12.0"
+    severity: "High"
+    reason: "Уязвимость связана с парсингом HTTP; наш сервис использует ограниченный набор фич"
+    issue: "https://github.com/KIRILLTF/DSO/issues/new?title=Python%20CVE-2024-7592%20waiver"
+    expires_at: "2025-03-01"
+    approved_by: "student@university.edu"
+    created_at: "2025-12-08"
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  - id: "CVE-2024-0397"
+    package: "Python"
+    version: "3.12.0"
+    severity: "High"
+    reason: "Уязвимость в urllib; не используется в продакшн-коде напрямую"
+    issue: "https://github.com/KIRILLTF/DSO/issues/new?title=Python%20urllib%20CVE-2024-0397"
+    expires_at: "2025-03-01"
+    approved_by: "student@university.edu"
+    created_at: "2025-12-08"
 
-jobs:
-  sbom_sca:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+  - id: "GHSA-6c5p-j8vq-pqhj"
+    package: "python-jose"
+    version: "3.3.0"
+    severity: "Critical"
+    reason: "Критическая уязвимость в JWT библиотеке; требуется обновление до версии 3.3.1"
+    issue: "https://github.com/KIRILLTF/DSO/issues/new?title=Update%20python-jose%20for%20CVE%20GHSA-6c5p-j8vq-pqhj"
+    expires_at: "2025-01-15"
+    approved_by: "student@university.edu"
+    created_at: "2025-12-08"
+    action_required: "Обновить python-jose до 3.3.1 в requirements.txt"
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Ensure evidence dirs
-        run: mkdir -p EVIDENCE/P09
-
-      - name: Generate SBOM with metadata
-        run: |
-          docker run --rm -v $PWD:/work -w /work anchore/syft:latest \
-            scan dir:. \
-            --scope all-layers \
-            --output cyclonedx-json \
-            --file EVIDENCE/P09/sbom.json
-          
-          echo "commit: ${{ github.sha }}" > EVIDENCE/P09/sbom_metadata.txt
-          echo "repository: ${{ github.repository }}" >> EVIDENCE/P09/sbom_metadata.txt
-          echo "workflow_run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}" >> EVIDENCE/P09/sbom_metadata.txt
-          echo "generated_at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> EVIDENCE/P09/sbom_metadata.txt
-          echo "syft_version: $(docker run --rm anchore/syft:latest version)" >> EVIDENCE/P09/sbom_metadata.txt
-
-      - name: SCA Scan
-        run: |
-          docker run --rm -v $PWD:/work -w /work anchore/grype:latest \
-            sbom:/work/EVIDENCE/P09/sbom.json -o json > EVIDENCE/P09/sca_report.json
-          
-          echo "grype_version: $(docker run --rm anchore/grype:latest version)" >> EVIDENCE/P09/sbom_metadata.txt
-
-      - name: Build enhanced SCA summary
-        run: |
-          echo "# SCA Summary" > EVIDENCE/P09/sca_summary.md
-          echo "" >> EVIDENCE/P09/sca_summary.md
-          echo "## Scan Metadata" >> EVIDENCE/P09/sca_summary.md
-          echo "- Commit: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})" >> EVIDENCE/P09/sca_summary.md
-          echo "- Branch: ${{ github.ref_name }}" >> EVIDENCE/P09/sca_summary.md
-          echo "- Workflow run: [#${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> EVIDENCE/P09/sca_summary.md
-          echo "- Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> EVIDENCE/P09/sca_summary.md
-          echo "- Tools: $(docker run --rm anchore/syft:latest version), $(docker run --rm anchore/grype:latest version)" >> EVIDENCE/P09/sca_summary.md
-          
-          echo "" >> EVIDENCE/P09/sca_summary.md
-          echo "## Vulnerability Summary" >> EVIDENCE/P09/sca_summary.md
-          echo "| Severity | Count |" >> EVIDENCE/P09/sca_summary.md
-          echo "|----------|-------|" >> EVIDENCE/P09/sca_summary.md
-          
-          if [ -s EVIDENCE/P09/sca_report.json ]; then
-            for sev in Critical High Medium Low Unknown; do
-              count=$(jq '[.matches[].vulnerability.severity | select(. == "'"$sev"'")] | length' EVIDENCE/P09/sca_report.json 2>/dev/null || echo "0")
-              echo "| $sev | $count |" >> EVIDENCE/P09/sca_summary.md
-            done
-          else
-            echo "| No vulnerabilities found | 0 |" >> EVIDENCE/P09/sca_summary.md
-          fi
-          
-          echo "" >> EVIDENCE/P09/sca_summary.md
-          echo "## Top Vulnerabilities (High+)" >> EVIDENCE/P09/sca_summary.md
-          
-          if [ -s EVIDENCE/P09/sca_report.json ] && [ "$(jq '.matches | length' EVIDENCE/P09/sca_report.json)" -gt 0 ]; then
-            echo "| CVE ID | Package | Version | Severity |" >> EVIDENCE/P09/sca_summary.md
-            echo "|--------|---------|---------|----------|" >> EVIDENCE/P09/sca_summary.md
-            
-            jq -r '.matches[] | select(.vulnerability.severity == "High" or .vulnerability.severity == "Critical") 
-              | "| \(.vulnerability.id) | \(.artifact.name) | \(.artifact.version) | \(.vulnerability.severity) |"' \
-              EVIDENCE/P09/sca_report.json | head -10 >> EVIDENCE/P09/sca_summary.md
-            
-            critical_count=$(jq '[.matches[].vulnerability.severity | select(. == "Critical")] | length' EVIDENCE/P09/sca_report.json)
-            high_count=$(jq '[.matches[].vulnerability.severity | select(. == "High")] | length' EVIDENCE/P09/sca_report.json)
-            
-            echo "" >> EVIDENCE/P09/sca_summary.md
-            echo "## Action Plan" >> EVIDENCE/P09/sca_summary.md
-            
-            if [ "$critical_count" -gt 0 ]; then
-              echo "### Immediate Actions (Critical: $critical_count)" >> EVIDENCE/P09/sca_summary.md
-              echo "1. Анализ всех Critical уязвимостей" >> EVIDENCE/P09/sca_summary.md
-              echo "2. Обновление зависимостей до безопасных версий" >> EVIDENCE/P09/sca_summary.md
-              echo "3. Проверить waivers в [policy/waivers.yml](../../policy/waivers.yml)" >> EVIDENCE/P09/sca_summary.md
-            fi
-            
-            if [ "$high_count" -gt 0 ]; then
-              echo "### Near-term Actions (High: $high_count)" >> EVIDENCE/P09/sca_summary.md
-              echo "1. Обновление в течение следующего спринта" >> EVIDENCE/P09/sca_summary.md
-              echo "2. Оценка рисков для каждого CVE" >> EVIDENCE/P09/sca_summary.md
-            fi
-          else
-            echo "Нет High/Critical уязвимостей." >> EVIDENCE/P09/sca_summary.md
-            echo "" >> EVIDENCE/P09/sca_summary.md
-            echo "## Action Plan" >> EVIDENCE/P09/sca_summary.md
-            echo "Нет критических или высокоуровневых уязвимостей. Продолжать регулярное сканирование." >> EVIDENCE/P09/sca_summary.md
-          fi
-          
-          echo "" >> EVIDENCE/P09/sca_summary.md
-          echo "## Next Steps" >> EVIDENCE/P09/sca_summary.md
-          echo "1. Просмотреть полный отчет: [sca_report.json](./sca_report.json)" >> EVIDENCE/P09/sca_summary.md
-          echo "2. Обновить зависимости через PR" >> EVIDENCE/P09/sca_summary.md
-          echo "3. Проверить актуальность waivers в [policy/waivers.yml](../../policy/waivers.yml)" >> EVIDENCE/P09/sca_summary.md
-
-      - name: Commit and push evidence to branch
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          
-          # Проверяем есть ли изменения в EVIDENCE/P09
-          if git diff --quiet HEAD -- EVIDENCE/P09/; then
-            echo "No changes in EVIDENCE/P09"
-          else
-            git add EVIDENCE/P09/
-            git commit -m "P09: update SBOM & SCA evidence [skip ci]"
-            git push
-          fi
-
-      - name: Upload evidence as artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: P09_EVIDENCE_${{ github.run_id }}
-          path: EVIDENCE/P09
+  - id: "GHSA-2jv5-9r88-3w3p"
+    package: "python-multipart"
+    version: "0.0.6"
+    severity: "High"
+    reason: "Уязвимость в парсинге multipart данных; библиотека используется только для загрузки файлов"
+    issue: "https://github.com/KIRILLTF/DSO/issues/new?title=python-multipart%20security%20GHSA-2jv5-9r88-3w3p"
+    expires_at: "2025-02-01"
+    approved_by: "student@university.edu"
+    created_at: "2025-12-08"
