@@ -1,0 +1,23 @@
+commit: 7c0fea7dd4e189b2d513414f9a858dbfd27024d0
+repository: KIRILLTF/DSO
+workflow_run: https://github.com/KIRILLTF/DSO/actions/runs/20035240532
+generated_at: 2025-12-08T16:29:47Z
+syft_version: Application:   syft
+Version:       1.38.0
+BuildDate:     2025-11-17T17:42:49Z
+GitCommit:     a033ae525f6c7ef937c6f49513e3403f07a1d6c0
+GitDescription: v1.38.0
+Platform:      linux/amd64
+GoVersion:     go1.25.4
+Compiler:      gc
+SchemaVersion: 16.1.0
+grype_version: Application:         grype
+Version:             0.104.1
+BuildDate:           2025-11-24T16:11:42Z
+GitCommit:           39f7fa17af2739cafe9b27176d4a68f7c05f21c1
+GitDescription:      v0.104.1
+Platform:            linux/amd64
+GoVersion:           go1.25.4
+Compiler:            gc
+Syft Version:        v1.38.0
+Supported DB Schema: 6
