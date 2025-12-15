@@ -10,6 +10,7 @@ on:
       - deploy/**
       - security/**
       - .github/workflows/ci-p12-iac-container.yml
+      - EVIDENCE/P12/**
 
 concurrency:
   group: p12-iac-container-${{ github.ref }}
