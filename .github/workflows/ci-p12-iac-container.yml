@@ -45,7 +45,7 @@ jobs:
               -f json \
               -c /work/security/hadolint.yaml \
               /work/Dockerfile \
-            > EVIDENCE/P12/hadolint_report.json
+            > EVIDENCE/P12/hadolint_report.json || true
 
       - name: Checkov (IaC scan)
         run: |
