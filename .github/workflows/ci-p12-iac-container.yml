@@ -1,67 +1,89 @@
-name: P12 - IaC & Container Security
+name: Security - IaC & Container (P12)
 
 on:
   workflow_dispatch:
   push:
-    branches: [p12-iac-container]
     paths:
-      - 'Dockerfile'
-      - 'iac/**'
-      - 'k8s/**'
-      - 'deploy/**'
-      - 'security/**'
-      - '.github/workflows/ci-p12-iac-container.yml'
+      - Dockerfile
+      - iac/**
+      - k8s/**
+      - deploy/**
+      - security/**
+      - .github/workflows/ci-p12-iac-container.yml
+
+concurrency:
+  group: p12-iac-container-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  security-scan:
+  p12-security:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Clean evidence directory
+      - name: Prepare evidence directories
         run: |
-          rm -rf EVIDENCE/P12
           mkdir -p EVIDENCE/P12
 
-      - name: Run Hadolint on Dockerfile
+      - name: Build container image
         run: |
-          docker run --rm -v $PWD:/work hadolint/hadolint \
-            hadolint -f json /work/Dockerfile > EVIDENCE/P12/hadolint_report.json 2>/dev/null || echo '[]' > EVIDENCE/P12/hadolint_report.json
+          docker build -t app:latest .
 
-      - name: Run Checkov on IaC
+      - name: Hadolint (Dockerfile)
         run: |
-          if [ -f "security/checkov.yaml" ]; then
-            CONFIG_ARG="--config-file /work/security/checkov.yaml"
+          docker run --rm \
+            -v "$PWD:/work" \
+            hadolint/hadolint \
+            hadolint \
+              -f json \
+              -c /work/security/hadolint.yaml \
+              /work/Dockerfile \
+            > EVIDENCE/P12/hadolint_report.json
+
+      - name: Checkov (IaC scan)
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            bridgecrew/checkov \
+              -d /work/iac \
+              -o json \
+              --config-file /work/security/checkov.yaml \
+            > EVIDENCE/P12/checkov_report.json || true
+
+      - name: Trivy (image scan)
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/work" \
+            aquasec/trivy \
+              image app:latest \
+              --config /work/security/trivy.yaml \
+              --format json \
+              --output /work/EVIDENCE/P12/trivy_report.json || true
+
+      - name: Commit evidence to branch
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add EVIDENCE/P12/*.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
           else
-            CONFIG_ARG=""
+            git commit -m "P12: update IaC & container security reports"
+            git push
           fi
-          
-          docker run --rm -v $PWD:/work bridgecrew/checkov \
-            -d /work/iac \
-            -o json \
-            --compact $CONFIG_ARG > EVIDENCE/P12/checkov_report.json 2>/dev/null || echo '{"results": {}}' > EVIDENCE/P12/checkov_report.json
 
-      - name: Build Docker image
-        run: |
-          docker build -t app:p12-${{ github.sha }} . || echo "Build failed but continuing for evidence"
-
-      - name: Run Trivy on Docker image
-        run: |
-          docker run --rm -v $PWD:/work aquasec/trivy \
-            image app:p12-${{ github.sha }} \
-            --format json \
-            --output /work/EVIDENCE/P12/trivy_report.json 2>/dev/null || echo '{"Results": []}' > EVIDENCE/P12/trivy_report.json
-
-      - name: Create minimal summary
-        run: |
-          echo "# P12 Security Evidence" > EVIDENCE/P12/hardening_summary.md
-          echo "Generated: $(date)" >> EVIDENCE/P12/hardening_summary.md
-
-      - name: Upload evidence
+      - name: Upload P12 evidence artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: p12-evidence
+          name: P12_EVIDENCE
           path: EVIDENCE/P12/
