@@ -1,27 +1,27 @@
 # SCA Summary
 
 ## Scan Metadata
-- Commit: [7c0fea7dd4e189b2d513414f9a858dbfd27024d0](https://github.com/KIRILLTF/DSO/commit/7c0fea7dd4e189b2d513414f9a858dbfd27024d0)
-- Branch: p09-sbom-sca
-- Workflow run: [#20035240532](https://github.com/KIRILLTF/DSO/actions/runs/20035240532)
-- Generated: 2025-12-08 16:30:19 UTC
+- Commit: [062169d3372abbafb92ddf7e1ed2c856e2f2b172](https://github.com/KIRILLTF/DSO/commit/062169d3372abbafb92ddf7e1ed2c856e2f2b172)
+- Branch: main
+- Workflow run: [#20243780285](https://github.com/KIRILLTF/DSO/actions/runs/20243780285)
+- Generated: 2025-12-15 18:50:39 UTC
 - Tools: Application:   syft
-Version:       1.38.0
-BuildDate:     2025-11-17T17:42:49Z
-GitCommit:     a033ae525f6c7ef937c6f49513e3403f07a1d6c0
-GitDescription: v1.38.0
+Version:       1.38.2
+BuildDate:     2025-12-09T21:48:47Z
+GitCommit:     bfe63f83dbaea88e22a5cfcd7d704c034c953730
+GitDescription: v1.38.2
 Platform:      linux/amd64
 GoVersion:     go1.25.4
 Compiler:      gc
 SchemaVersion: 16.1.0, Application:         grype
-Version:             0.104.1
-BuildDate:           2025-11-24T16:11:42Z
-GitCommit:           39f7fa17af2739cafe9b27176d4a68f7c05f21c1
-GitDescription:      v0.104.1
+Version:             0.104.2
+BuildDate:           2025-12-09T23:03:07Z
+GitCommit:           b47060229fe05c654a7f0615a131db6cb3bc27f6
+GitDescription:      v0.104.2
 Platform:            linux/amd64
 GoVersion:           go1.25.4
 Compiler:            gc
-Syft Version:        v1.38.0
+Syft Version:        v1.38.2
 Supported DB Schema: 6
 
 ## Vulnerability Summary
