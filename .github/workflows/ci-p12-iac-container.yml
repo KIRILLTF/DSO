@@ -18,6 +18,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Git user
+        run: |
+          git config --global user.email "ci-bot@example.com"
+          git config --global user.name "GitHub Actions Bot"
 
       - name: Create evidence folder
         run: mkdir -p EVIDENCE/P12
@@ -49,3 +56,13 @@ jobs:
         with:
           name: P12_EVIDENCE
           path: EVIDENCE/P12
+
+      - name: Commit P12 evidence to repo
+        run: |
+          git add EVIDENCE/P12/*.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Auto-commit: add/update P12 evidence [skip ci]"
+            git push
+          fi
