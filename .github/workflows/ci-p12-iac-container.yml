@@ -9,7 +9,7 @@ on:
       - "iac/**"
       - "k8s/**"
       - "security/**"
-      - ".github/workflows/**"
+      - ".github/workflows/ci-p12-iac-container.yml"
 
 permissions:
   contents: write
@@ -21,59 +21,57 @@ concurrency:
 jobs:
   iac-container-security:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
-      - name: Checkout with write access
+      - name: Checkout code with full history
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Ensure evidence directory
-        run: mkdir -p EVIDENCE/P12
-
-      - name: Run Hadolint
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/work \
-            hadolint/hadolint \
-            hadolint -f json /work/Dockerfile \
-            > /work/EVIDENCE/P12/hadolint_report.json || true
-
-      - name: Run Checkov
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/work \
-            bridgecrew/checkov \
-            -d /work/iac \
-            -o json \
-            --compact \
-            > /work/EVIDENCE/P12/checkov_report.json || true
-
-      - name: Build Docker image
-        run: docker build -t app:local .
-
-      - name: Run Trivy
-        run: |
-          docker run --rm \
-            -v ${{ github.workspace }}:/work \
-            aquasec/trivy \
-            image app:local \
-              --format json \
-              --output /work/EVIDENCE/P12/trivy_report.json || true
-
-      - name: Commit and push P12 evidence
+      - name: Set up Git user
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add EVIDENCE/P12/
+      - name: Ensure evidence folder
+        run: mkdir -p EVIDENCE/P12
 
-          git commit -m "P12: auto-update IaC & container security evidence [skip ci]" \
-            || echo "Nothing to commit"
+      - name: Run Hadolint on Dockerfile
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/work hadolint/hadolint \
+            sh -c 'hadolint -f json /work/Dockerfile > /work/EVIDENCE/P12/hadolint_report.json'
 
-          git push || echo "Nothing to push"
+      - name: Run Checkov on IaC
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/work bridgecrew/checkov \
+            -d /work/iac \
+            -o json \
+            --compact > EVIDENCE/P12/checkov_report.json
+
+      - name: Build Docker image
+        run: docker build -t app:local .
+
+      - name: Run Trivy on image
+        run: |
+          docker run --rm -v ${{ github.workspace }}:/work aquasec/trivy \
+            image app:local \
+            --format json \
+            --output /work/EVIDENCE/P12/trivy_report.json
+
+      - name: Debug: list evidence contents
+        run: ls -lh EVIDENCE/P12
+
+      - name: Commit and push P12 evidence
+        run: |
+          git add EVIDENCE/P12/*.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "P12: auto-commit container/IaC evidence [skip ci]"
+            git push
+          fi
 
       - name: Upload P12 evidence artifact
         if: always()
