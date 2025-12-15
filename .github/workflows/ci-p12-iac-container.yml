@@ -10,6 +10,9 @@ on:
       - "security/**"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   iac-container-security:
     name: IaC & Container Security
