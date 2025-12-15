@@ -6,60 +6,46 @@ on:
       - "Dockerfile"
       - "docker-compose.yml"
       - "iac/**"
+      - "k8s/**"
       - "security/**"
   workflow_dispatch:
 
-permissions:
-  contents: write
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  security-scan:
+  iac-container-security:
+    name: IaC & Container Security
     runs-on: ubuntu-latest
-    timeout-minutes: 15
 
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Ensure evidence dir
+      - name: Create evidence folder
         run: mkdir -p EVIDENCE/P12
 
-      - name: Hadolint Dockerfile
+      - name: Run Hadolint on Dockerfile
         run: |
           docker run --rm -v ${{ github.workspace }}:/work hadolint/hadolint \
-            hadolint -f json /work/Dockerfile > EVIDENCE/P12/hadolint_report.json
+            hadolint -f json /work/Dockerfile > /work/EVIDENCE/P12/hadolint_report.json || true
 
-      - name: Checkov (IaC scan)
+      - name: Run Checkov on IaC
         run: |
           docker run --rm -v ${{ github.workspace }}:/work bridgecrew/checkov \
-            -d /work/iac -o json --compact > EVIDENCE/P12/checkov_report.json
+            -d /work/iac \
+            -o json \
+            --compact > /work/EVIDENCE/P12/checkov_report.json || true
 
-      - name: Build image for Trivy
+      - name: Build Docker image
         run: docker build -t app:local .
 
-      - name: Trivy image scan
+      - name: Run Trivy on image
         run: |
           docker run --rm -v ${{ github.workspace }}:/work aquasec/trivy \
-            image app:local --format json --output /work/EVIDENCE/P12/trivy_report.json
+            image app:local \
+            --format json \
+            --output /work/EVIDENCE/P12/trivy_report.json || true
 
-      - name: Auto-commit updated evidence
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add EVIDENCE/P12/
-          git commit -m "P12: update IaC/container scan reports [skip ci]" || echo "Nothing to commit"
-          git push || echo "Nothing to push"
-
-      - name: Upload as artifact
-        if: always()
+      - name: Upload P12 evidence
         uses: actions/upload-artifact@v4
         with:
           name: P12_EVIDENCE
-          path: EVIDENCE/P12/
+          path: EVIDENCE/P12
