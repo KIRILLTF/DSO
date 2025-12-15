@@ -1,0 +1,90 @@
+name: Security - IaC & Container (P12)
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - Dockerfile
+      - iac/**
+      - k8s/**
+      - deploy/**
+      - security/**
+      - .github/workflows/ci-p12-iac-container.yml
+      - EVIDENCE/P12/**
+
+concurrency:
+  group: p12-iac-container-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  p12-security:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare evidence directories
+        run: |
+          mkdir -p EVIDENCE/P12
+
+      - name: Build container image
+        run: |
+          docker build -t app:latest .
+
+      - name: Hadolint (Dockerfile)
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            hadolint/hadolint \
+            hadolint \
+              -f json \
+              -c /work/security/hadolint.yaml \
+              /work/Dockerfile \
+            > EVIDENCE/P12/hadolint_report.json || true
+
+      - name: Checkov (IaC scan)
+        run: |
+          docker run --rm \
+            -v "$PWD:/work" \
+            bridgecrew/checkov \
+              -d /work/iac \
+              -o json \
+              --config-file /work/security/checkov.yaml \
+            > EVIDENCE/P12/checkov_report.json || true
+
+      - name: Trivy (image scan)
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD:/work" \
+            aquasec/trivy \
+              image app:latest \
+              --config /work/security/trivy.yaml \
+              --format json \
+              --output /work/EVIDENCE/P12/trivy_report.json || true
+
+      - name: Commit evidence to branch
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add EVIDENCE/P12/*.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "P12: update IaC & container security reports"
+            git push
+          fi
+
+      - name: Upload P12 evidence artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: P12_EVIDENCE
+          path: EVIDENCE/P12/
